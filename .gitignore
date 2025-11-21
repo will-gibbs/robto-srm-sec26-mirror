@@ -1,0 +1,11 @@
+# ROS2 Workspace Directories
+build/
+install/
+log/
+
+# VSCode Config Files
+.vscode/
+
+# Vim Files
+*.*~
+*.swp
