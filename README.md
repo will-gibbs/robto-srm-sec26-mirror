@@ -1,2 +1,2 @@
-# robto-srm-sec26
-Official repository for Robto srm, for the SoutheastCon 2026 Hardware Competition.
+# Robto SRM
+Official repository for Robto srm, the goodest boy robot for the SoutheastCon 2026 Hardware Competition.
