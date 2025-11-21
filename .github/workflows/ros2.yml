@@ -3,9 +3,9 @@ name: ROS2 Colcon Build
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [ "main, dev" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main, dev" ]
     types: [opened, synchronize, reopened]
 
 jobs:
