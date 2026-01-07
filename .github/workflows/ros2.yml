@@ -3,7 +3,9 @@ name: ROS2 Colcon Build
 on:
   workflow_dispatch:
   push:
-    branches: [ "main, dev" ]
+    branches:
+      - main
+      - dev
   pull_request:
     branches:
       - main
