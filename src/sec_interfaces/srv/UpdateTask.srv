@@ -1,0 +1,24 @@
+# Update a controller's task values with the manager
+
+# Name of the action on the controller that is updating its task
+string controller_action_name
+
+# New point value for the controller's task
+float32 new_task_point_value
+
+# New time to complete for the controller's task
+float32 new_task_time_to_complete
+
+# New likelihood of success for the controller's task
+float32 new_task_likelihood_of_success
+---
+##
+## Status Codes:
+##
+int8 OK=0
+int8 RETRY=1
+int8 FATAL=2
+int8 UNKNOWN=3
+
+# Status of the update task request
+int8 request_status
