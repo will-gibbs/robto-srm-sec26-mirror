@@ -1,0 +1,11 @@
+# Enable a controller to complete its task (i.e., pass the "talking stick")
+
+# Command to begin task
+uint8 begin_task
+---
+# Confirmation of completion of task
+uint8 task_complete
+---
+# Time until task is complete
+# note: this uses a message definition from another package (builtin_interfaces/msg/Duration)
+builtin_interfaces/Duration time_remaining
