@@ -1,0 +1,15 @@
+# Register a controller with the manager
+
+# Name of the action on the controller that is registering
+string controller_action_name
+---
+##
+## Status Codes:
+##
+uint8 OK=0
+uint8 RETRY=1
+uint8 FATAL=2
+uint8 UNKNOWN=3
+
+# Controller's registration status with the manager
+uint8 registration_status_code

@@ -1,0 +1,19 @@
+# Begin a run
+# This service is called to tell the manager that the round has started
+
+##
+## Codes:
+##
+uint8 START_ROUND=1
+
+# Start the round
+uint8 start_round
+---
+##
+## Status Codes:
+##
+uint8 OK=0
+uint8 ERROR=1
+
+# Status of the manager and if it has begun its processing
+uint8 manager_status
