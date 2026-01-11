@@ -1,8 +1,18 @@
 # Enable a controller to complete its task (i.e., pass the "talking stick")
 
+##
+## Codes:
+##
+uint8 BEGIN_TASK=1
+
 # Command to begin task
 uint8 begin_task
 ---
+##
+## Codes:
+##
+uint8 TASK_COMPLETE=1
+
 # Confirmation of completion of task
 uint8 task_complete
 ---

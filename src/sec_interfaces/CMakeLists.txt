@@ -15,6 +15,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/RegisterController.srv"
+  "srv/StartRound.srv"
   "srv/UpdateTask.srv"
   "action/CompleteTask.action"
   DEPENDENCIES builtin_interfaces)
