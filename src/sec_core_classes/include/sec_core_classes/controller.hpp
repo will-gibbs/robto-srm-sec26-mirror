@@ -1,3 +1,5 @@
+// This is bad code; this is not complete
+
 // ROS2-specific packages
 #include "rclcpp/rclcpp.hpp"
 #include "sec_interfaces/srv/register_controller.hpp"
