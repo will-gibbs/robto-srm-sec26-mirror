@@ -10,11 +10,11 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sec_interfaces REQUIRED)
 
-add_executable(tk_server src/tk_server.cpp)
-ament_target_dependencies(tk_server rclcpp sec_interfaces)
+add_executable(timekeeper src/timekeeper.cpp)
+ament_target_dependencies(timekeeper rclcpp sec_interfaces)
 
 install(TARGETS
-    tk_server
+    timekeeper
     DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
