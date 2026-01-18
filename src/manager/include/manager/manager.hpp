@@ -9,6 +9,7 @@
 //* central processing and starts and stops Robto's other subsystems.          *
 //******************************************************************************
 
+#include <iostream>
 #include "rclcpp/rclcpp.hpp"
 // TODO: Future imports
 // ControllerReference
@@ -19,10 +20,12 @@ using namespace rclcpp;
 // Robto's central processing manager
 class Manager : public Node
 {
-   ControllerReference *p_controllers;        // ?
+   int                 round_has_started;     // Indicates whether the round has begun
+   ControllerReference *p_controllers;        // List of Robto's controllers
    Service             register_controler;    // ?
+   Service             start_round;           // Begins Robto's mission
    Subscription<builtin_interfaces::msg::Duration>::SharedPointer
-                       round_time_subscriber; // ?
+                       round_time_subscriber; // Subscription to the time remaining in the round
 
    // ?
    void register_controller_callback(
