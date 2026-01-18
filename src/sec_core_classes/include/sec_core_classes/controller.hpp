@@ -14,13 +14,13 @@ using namespace sec_interfaces::srv;
 
 class Controller : public Node
 {
-    rclcpp_action::Server complete_task;
-    Client                register_controller;
-    Client                update_task;
-    string                action_name;
-    TimerBase             timer;
+    Server    complete_task;
+    Client    register_controller;
+    Client    update_task;
+    string    action_name;
+    TimerBase timer;
 
-    void timer_callback() {};
+    virtual void timer_callback();
 
 public:
 
@@ -29,9 +29,9 @@ public:
         action_name = name;
     };
 
-    handle_goal() {};
+    virtual void handle_goal();
 
-    handle_cancel() {};
+    virtual void handle_cancel();
 
-    handle_accepted() {};
+    virtual void handle_accepted();
 };
