@@ -27,6 +27,13 @@ public:
     Controller(string name) : Node(name)
     {
         action_name = name;
+        
+        this->action_server_ = rclcpp_action::create_server<CompleteTask>(
+            this,
+            action_name,
+            this->handle_goal,
+            this->handle_cancel,
+            this->handle_accepted);
     };
 
     virtual void handle_goal();
