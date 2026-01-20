@@ -13,6 +13,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(sec_core_classes REQUIRED)
 
 add_library(action_server SHARED
   include/sec_core_classes/controller.hpp)
@@ -54,8 +55,8 @@ endif()
 
 find_package(rosidl_default_generators REQUIRED)
 
-rosidl_generate_interfaces($[PROJECT_NAME}
-  "action/control.action"
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "action/Control.action"
 )
 
 ament_package()

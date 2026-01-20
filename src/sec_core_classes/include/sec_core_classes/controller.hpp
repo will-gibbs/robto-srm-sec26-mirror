@@ -28,7 +28,7 @@ public:
     {
         action_name = name;
         
-        this->action_server_ = rclcpp_action::create_server<CompleteTask>(
+        this->action_server_ = rclcpp_action::create_server<Control>(
             this,
             action_name,
             this->handle_goal,
