@@ -3,14 +3,14 @@
 <package format="3">
   <name>manager</name>
   <version>0.0.0</version>
-  <description>Central system manager class of Robto SRM</description>
+  <description>Robto's Manager node, responsible for starting all of his controllers</description>
   <maintainer email="jonmity01@gmail.com">jonmity</maintainer>
-  <license>Apache-2.0</license>
+  <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
+  <depend>sec_interfaces</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
