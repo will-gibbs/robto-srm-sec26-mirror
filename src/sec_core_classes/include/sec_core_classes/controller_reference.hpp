@@ -64,6 +64,9 @@ public:
 
       RCLCPP_INFO(get_logger(), "Creating a controller with an action name of '%s'...",
          controller_action_name.c_str());
+
+      controller_update_task = create_service<UpdateTask>(action_name, controller_update_task_callback);
+      controller_complete_task = rclcpp_action::create_client<CompleteTask>(this, action_name);
    }
 
    // Get the complete task action client for the controller
