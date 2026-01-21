@@ -75,14 +75,26 @@ void Manager::register_controller_callback(
 }
 
 //******************************************************************************
-//* ? *
+//*                           Start Robto's mission                            *
 //******************************************************************************
 // ? start_round_callback
 void start_round_callback(
    const sec_interfaces::srv::StartRound::Request  request,
          sec_interfaces::srv::StartRound::Response response)
 {
-
+   if (request->start_round == START_ROUND)
+   {
+      this->round_has_started = 1;
+      response->manager_status = OK;
+      RCLCPP_INFO(get_logger("rclcpp"), "Starting Robto's mission. Hang in there, Astroducks!");
+      // ? Start round logic
+   }
+   else
+   {
+      response->manager_status = ERROR;
+      RCLCPP_INFO(get_logger("rclcpp"), "Something went wrong with starting the round.");
+   }
+   return;
 }
 
 //******************************************************************************
