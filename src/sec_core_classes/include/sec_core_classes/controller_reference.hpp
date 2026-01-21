@@ -43,8 +43,12 @@ public:
    // Constructor, create a controller reference
    ControllerReference(const string name)
    {
-      // Initilize the 
-      controller_name = name;
+      // Initilize member variables
+      controller_name            = name;
+      task_priority              = 0.0f;
+      task_point_value           = 0.0f;
+      task_time_to_complete      = 0.0f;
+      task_likelihood_of_success = 0.0f;
    }
 
    // Set the member variables
