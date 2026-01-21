@@ -1,5 +1,6 @@
 // C++-specific packages
 #include <memory>
+#include <stdexcept>
 
 // ROS2-specific packages
 #include "rclcpp/rclcpp.hpp"
@@ -31,10 +32,29 @@ class ControllerReference
          task_likelihood_of_success;
 
    // Update a controller's task values at the controller's request
-   void controller_update_task_callback(const UpdateTask::Request  request,
-                                              UpdateTask::Response response)
+   void controller_update_task_callback(const shared_ptr<UpdateTask::Request>  request,
+                                              shared_ptr<UpdateTask::Response> response)
    {
-      
+      // Log the progress of the update
+      RCLCPP_INFO(get_logger(), "Updating the task values for '%s'...", controller_action_name.c_str());
+
+      try
+      {
+         // Change controller task values to new values
+         set_task_point_value          ((float)request->new_task_point_value);
+         set_task_time_to_complete     ((float)request->new_task_time_to_complete);
+         set_task_likelihood_of_success((float)request->new_task_likelihood_of_success);
+
+         // Reply with a status code of OK
+         response->request_status = request->OK;
+         RCLCPP_INFO(get_logger(), "Update complete. Update request status code = %d (OK).", response->OK);
+      }
+      catch (...)
+      {
+         // Reply with a status code of RETRY
+         response->request_status = response->RETRY;
+         RCLCPP_ERROR(get_logger(), "Update unsuccessful. Update request status code = %d (RETRY).", response->RETRY);
+      }
    }
 public:
    // Constructor, create a controller reference
