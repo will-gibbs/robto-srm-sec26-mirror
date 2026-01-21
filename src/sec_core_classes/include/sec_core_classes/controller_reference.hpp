@@ -17,69 +17,74 @@ using namespace rclcpp;
 // The definition of a controller reference
 class ControllerReference
 {
+   // Interface type aliases
    using UpdateTask = sec_interfaces::srv::UpdateTask;
    using CompleteTask = sec_interfaces::action::CompleteTask;
 
-   shared_ptr<Node> manager_node;
-
+   // Action server for the complete task action on the controller
    rclcpp_action::Client<CompleteTask>::SharedPtr controller_complete_task;
 
-   Service<UpdateTask>::SharedPtr controller_update_task;
+   // Service server for updating the task values of the controller
+   Service<UpdateTask>::SharedPtr                 controller_update_task;
 
-   string controller_action_name;
+   // The name of the complete task action on the controller
+   string                                         controller_name;
 
-   float task_priority,
-         task_point_value,
-         task_time_to_complete,
-         task_likelihood_of_success;
+                                                  // Priority value of the controller's task
+   float                                          task_priority,
+                                                  // Point-value value of the controller's task
+                                                  task_point_value,
+                                                  // Time-to-complete value of the controller's task
+                                                  task_time_to_complete,
+                                                  // Likelihood-of-success value of the controller's task
+                                                  task_likelihood_of_success;
 
 public:
    // Constructor, create a controller reference
-   ControllerReference(const string action_name)
+   ControllerReference(const string name)
    {
-      controller_action_name = action_name;
+      // Initilize the 
+      controller_name = name;
    }
 
    // Set the member variables
-   void  set_task_priority             (float new_pr)  {task_priority = new_pr;};
-   void  set_task_point_value          (float new_pv)  {task_point_value = new_pv;};
-   void  set_task_time_to_complete     (float new_ttc) {task_time_to_complete = new_ttc;};
-   void  set_task_likelihood_of_success(float new_los) {task_likelihood_of_success = new_los;};
+   void   set_task_priority             (float new_pr)  {task_priority = new_pr;};
+   void   set_task_point_value          (float new_pv)  {task_point_value = new_pv;};
+   void   set_task_time_to_complete     (float new_ttc) {task_time_to_complete = new_ttc;};
+   void   set_task_likelihood_of_success(float new_los) {task_likelihood_of_success = new_los;};
 
    // Set the update task service server for the controller
-   void  set_controller_update_task    (Service<UpdateTask>::SharedPtr srv)                 {controller_update_task = srv;};
+   void   set_controller_update_task    (Service<UpdateTask>::SharedPtr srv)                 {controller_update_task = srv;};
 
    // Set the complete task action client for the controller
-   void  set_controller_complete_task  (rclcpp_action::Client<CompleteTask>::SharedPtr cli) {controller_complete_task = cli;};
+   void   set_controller_complete_task  (rclcpp_action::Client<CompleteTask>::SharedPtr cli) {controller_complete_task = cli;};
 
    // Get the member variables
-   float get_task_priority             ()              {return task_priority;};
-   float get_task_point_value          ()              {return task_point_value;};
-   float get_task_time_to_complete     ()              {return task_time_to_complete;};
-   float get_task_likelihood_of_success()              {return task_likelihood_of_success;};
-   string get_controller_action_name   ()              {return controller_action_name;};
-
-   // Get the update task service server for the controller
-   Service<UpdateTask>::SharedPtr get_controller_update_task() {return controller_update_task;};
-
-   // Get the complete task action client for the controller
-   rclcpp_action::Client<CompleteTask>::SharedPtr get_controller_complete_task() {return controller_complete_task;};
-
-   // Initialize the controller reference
-   // void init                           (Node::SharedPtr node) {manager_node = node;};
+   float  get_task_priority             ()              {return task_priority;};
+   float  get_task_point_value          ()              {return task_point_value;};
+   float  get_task_time_to_complete     ()              {return task_time_to_complete;};
+   float  get_task_likelihood_of_success()              {return task_likelihood_of_success;};
+   string get_controller_name           ()              {return controller_name;};
 
    // Update a controller's task values at the controller's request
    void controller_update_task_callback(const shared_ptr<UpdateTask::Request> request, shared_ptr<UpdateTask::Response> response)
    {
       try
       {
-         // Change controller task values to new values
-         set_task_point_value          ((float)request->new_task_point_value);
-         set_task_time_to_complete     ((float)request->new_task_time_to_complete);
-         set_task_likelihood_of_success((float)request->new_task_likelihood_of_success);
+         if (request->new_task_likelihood_of_success > 1.00f)
+         {
+            response->request_status = response->RETRY;
+         }
+         else
+         {
+            // Change controller task values to new values
+            set_task_point_value          ((float)request->new_task_point_value);
+            set_task_time_to_complete     ((float)request->new_task_time_to_complete);
+            set_task_likelihood_of_success((float)request->new_task_likelihood_of_success);
 
-         // Reply with a status code of OK
-         response->request_status = response->OK;
+            // Reply with a status code of OK
+            response->request_status = response->OK;
+         }
       }
       catch (...)
       {
