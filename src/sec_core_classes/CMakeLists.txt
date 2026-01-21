@@ -11,6 +11,8 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sec_interfaces REQUIRED)
 
 install(
   DIRECTORY include/
