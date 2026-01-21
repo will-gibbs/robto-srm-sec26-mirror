@@ -17,6 +17,8 @@
 
 #include <iostream>
 #include "rclcpp/rclcpp.hpp"
+#include "sec_interfaces/srv/RegisterController.hpp" // ? Check this file name
+#inlcude "sec_interfaces/srv/StartRound.hpp" // ? Same here
 // TODO: Future imports
 // ControllerReference
 // RegisterController
@@ -30,7 +32,9 @@ using namespace rclcpp;
 class Manager : public Node
 {
    int                 round_has_started;     // Indicates whether the round has begun
-   ControllerReference *p_controllers;        // List of Robto's controllers
+   // ? For now, p_controllers will be an array of integers
+   //   All instances should be changed to ControllerReference object pointers once that class can be implemented
+   int                 *p_controllers;        // List of Robto's controllers
    Service             register_controler;    // ?
    Service             start_round;           // Begins Robto's mission
    Subscription<builtin_interfaces::msg::Duration>::SharedPointer
@@ -40,6 +44,11 @@ class Manager : public Node
    void register_controller_callback(
       const sec_interfaces::srv::RegisterController::Request  request,
             sec_interfaces::srv::RegisterController::Response response
+   );
+   // ? start_round_callback();
+   void start_round_callback(
+      const sec_interfaces::srv::StartRound::Request  request,
+            sec_interfaces::srv::StartRound::Response response
    );
 public:
    // Constructor
@@ -59,9 +68,28 @@ Manager::Manager()
 //******************************************************************************
 void Manager::register_controller_callback(
    const sec_interfaces::srv::RegisterController::Request  request,
-         sec_interfaces::srv::RegisterController::Response response
-)
+         sec_interfaces::srv::RegisterController::Response response)
 {
    
    return;
+}
+
+//******************************************************************************
+//* ? *
+//******************************************************************************
+// ? start_round_callback
+void start_round_callback(
+   const sec_interfaces::srv::StartRound::Request  request,
+         sec_interfaces::srv::StartRound::Response response)
+{
+
+}
+
+//******************************************************************************
+//*                               Main Function                                *
+//******************************************************************************
+int main()
+{
+
+   return 0;
 }
