@@ -33,7 +33,7 @@ class Manager : public Node
 {
    int                 round_has_started;     // Indicates whether the round has begun
    // ? For now, p_controllers will be an array of integers
-   //   All instances should be changed to ControllerReference object pointers once that class can be implemented
+   // ? All instances should be changed to ControllerReference object pointers once that class can be implemented
    int                 *p_controllers;        // List of Robto's controllers
    Service             register_controler;    // ?
    Service             start_round;           // Begins Robto's mission
@@ -50,6 +50,10 @@ class Manager : public Node
       const sec_interfaces::srv::StartRound::Request  request,
             sec_interfaces::srv::StartRound::Response response
    );
+   // Add a controller to the list
+   void add_controller();
+   // Sort the controllers into descending order of priority
+   void sort_controllers();
 public:
    // Constructor
    Manager();
@@ -70,14 +74,17 @@ void Manager::register_controller_callback(
    const sec_interfaces::srv::RegisterController::Request  request,
          sec_interfaces::srv::RegisterController::Response response)
 {
-   
+   int priority; // Priority of the controller's task
+
+   // ? Replace with real logic later:
+   priority = (int)request->controller_action_name[0]; // ? Arbitrary priority
+
    return;
 }
 
 //******************************************************************************
 //*                           Start Robto's mission                            *
 //******************************************************************************
-// ? start_round_callback
 void start_round_callback(
    const sec_interfaces::srv::StartRound::Request  request,
          sec_interfaces::srv::StartRound::Response response)
@@ -94,6 +101,22 @@ void start_round_callback(
       response->manager_status = ERROR;
       RCLCPP_INFO(get_logger("rclcpp"), "Something went wrong with starting the round.");
    }
+   return;
+}
+
+//******************************************************************************
+//* Add a new controller to the list *
+//******************************************************************************
+void Manager::add_controller()
+{
+   return;
+}
+
+//******************************************************************************
+//* Sort controllers into descending order of priority *
+//******************************************************************************
+void Manager::sort_controllers()
+{
    return;
 }
 
