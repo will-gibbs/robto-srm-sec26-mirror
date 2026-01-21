@@ -76,9 +76,14 @@ void Manager::register_controller_callback(
 {
    int priority; // Priority of the controller's task
 
-   // ? Replace with real logic later:
-   priority = (int)request->controller_action_name[0]; // ? Arbitrary priority
+   // ? Assign an arbitrary priority value
+   priority = (int)request->controller_action_name[0];
 
+   // Add the new controller to the list
+   add_controller(priority); //? will be replaced with the ControllerReference object
+   // ? TODO: Add error handling
+   response->regisration_status_code == OK;
+   RCLCPP_INFO(get_logger("rclcpp"), "Added the controller %s", request->controller_action_name);
    return;
 }
 
