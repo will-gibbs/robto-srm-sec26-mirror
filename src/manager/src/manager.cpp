@@ -35,8 +35,6 @@ class Manager : public Node
    // ? For now, p_controllers will be an array of integers
    // ? All instances should be changed to ControllerReference object pointers once that class can be implemented
    int                 *p_controllers;        // List of Robto's controllers
-   Service             register_controler;    // ?
-   Service             start_round;           // Begins Robto's mission
    Subscription<builtin_interfaces::msg::Duration>::SharedPointer
                        round_time_subscriber; // Subscription to the time remaining in the round
 
@@ -128,8 +126,27 @@ void Manager::sort_controllers()
 //******************************************************************************
 //*                               Main Function                                *
 //******************************************************************************
-int main()
+int main(int argc, char **argv)
 {
+   // Initialize ROS2 C++ client library
+   init(argc, argv);
 
+   // Create the manager node
+   shared_ptr<Node> node = Node::make_shared("manager");
+
+   // Create services for registering controllers and starting the round
+   Service<sec_interfaces::srv::RegisterController>::SharedPointer register_controller = 
+      node->create_service<sec_interfaces::srv::RegisterController>("register_controller", &register_controller_callback);
+   Service<sec_interfaces::srv::StartRound>::        SharedPointer start_round =
+      node->create_service<sec_interfaces::srv::StartRound>        ("start_round",         &start_round_callback);
+
+   // ? Manager logic goes here
+
+   // Print a message indicating that the maager is ready
+   RCLCPP_INFO(get_logger("rclcpp"), "Robto's Manager is on board and ready to go.");
+
+   // Spin up the node
+   spin(node);
+   shutdown();
    return 0;
 }
