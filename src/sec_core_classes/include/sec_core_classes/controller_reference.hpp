@@ -1,3 +1,35 @@
+//******************************************************************************
+//* Project:      Robto SRM, IEEE SoutheastCon 2026                            *
+//* Package:      sec_core_classes                                             *
+//* Name:         ControllerReference                                          *
+//* Written by:   Will Gibbs                                                   *
+//* Written date: 2026-01-22                                                   *
+//******************************************************************************
+
+//******************************************************************************
+//* This header file contains the definition of the controller reference       *
+//* class. Each controller reference refers to one specific controller. It     *
+//* contains the service server for the controller to update its task values,  *
+//* the action client for the controller to complete its task, and the         *
+//* controller's task values.                                                  *
+//* The manager will create a new controller reference when a controller       *
+//* registers, and will use the complete task action client to grant the       *
+//* controller permission to complete its task (aka, pass the talking stick).  *
+//* The controller reference handles updating the controller's task values     *
+//* (at the controller's request).                                             *
+//*                                                                            *
+//* Services:                                                                  *
+//* - controller_update_task (service name unique to each controller)          *
+//*                                                                            *
+//* Action Clients:                                                            *
+//* - controller_complete_task (action name unique to each controller)         *
+//*                                                                            *
+//* Note: a ControllerReference object has as members a service server and an  *
+//* action client, but it is not a Node. Therefore, the manager will create    *
+//* the service server and action client when it registers a new controller    *
+//* (refer to `controller_reference_test.cpp` for an example of this).         *
+//******************************************************************************
+
 // C++-specific packages
 #include <memory>
 #include <stdexcept>
@@ -14,7 +46,10 @@
 using namespace std;
 using namespace rclcpp;
 
-// The definition of a controller reference
+//******************************************************************************
+//*                              Class Definition                              *
+//******************************************************************************
+// The definition of a reference to a controller
 class ControllerReference
 {
    // Interface type aliases
@@ -28,16 +63,15 @@ class ControllerReference
    Service<UpdateTask>::SharedPtr                 controller_update_task;
 
    // The name of the complete task action on the controller
-   string                                         controller_name;
+   string controller_name;
 
-                                                  // Priority value of the controller's task
-   float                                          task_priority,
-                                                  // Point-value value of the controller's task
-                                                  task_point_value,
-                                                  // Time-to-complete value of the controller's task
-                                                  task_time_to_complete,
-                                                  // Likelihood-of-success value of the controller's task
-                                                  task_likelihood_of_success;
+   float  task_priority,              // Priority value of the controller's task
+          
+          task_point_value,           // Point-value value of the controller's task
+          
+          task_time_to_complete,      // Time-to-complete value of the controller's task
+          
+          task_likelihood_of_success; // Likelihood-of-success value of the controller's task
 
 public:
    // Constructor, create a controller reference
@@ -58,10 +92,12 @@ public:
    void   set_task_likelihood_of_success(float new_los) {task_likelihood_of_success = new_los;};
 
    // Set the update task service server for the controller
-   void   set_controller_update_task    (Service<UpdateTask>::SharedPtr srv)                 {controller_update_task = srv;};
+   void   set_controller_update_task    (Service<UpdateTask>::SharedPtr srv) 
+      {controller_update_task = srv;};
 
    // Set the complete task action client for the controller
-   void   set_controller_complete_task  (rclcpp_action::Client<CompleteTask>::SharedPtr cli) {controller_complete_task = cli;};
+   void   set_controller_complete_task  (rclcpp_action::Client<CompleteTask>::SharedPtr cli)
+      {controller_complete_task = cli;};
 
    // Get the member variables
    float  get_task_priority             ()              {return task_priority;};
@@ -70,11 +106,17 @@ public:
    float  get_task_likelihood_of_success()              {return task_likelihood_of_success;};
    string get_controller_name           ()              {return controller_name;};
 
+   // Get the complete task action client for the controller
+   rclcpp_action::Client<CompleteTask>::SharedPtr get_controller_complete_task()
+      {return controller_complete_task;};
+
    // Update a controller's task values at the controller's request
-   void controller_update_task_callback(const shared_ptr<UpdateTask::Request> request, shared_ptr<UpdateTask::Response> response)
+   void controller_update_task_callback(const shared_ptr<UpdateTask::Request>  request,
+                                              shared_ptr<UpdateTask::Response> response)
    {
-      try
+      try // Attempt to update the controller's task values
       {
+         // Validate new task values
          if (request->new_task_likelihood_of_success > 1.00f)
          {
             response->request_status = response->RETRY;
@@ -90,7 +132,7 @@ public:
             response->request_status = response->OK;
          }
       }
-      catch (...)
+      catch (...) // The controller reference fails to update the task values
       {
          // Reply with a status code of RETRY
          response->request_status = response->RETRY;
