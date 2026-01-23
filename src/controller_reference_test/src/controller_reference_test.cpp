@@ -1,3 +1,18 @@
+//******************************************************************************
+//* Project:      Robto SRM, IEEE SoutheastCon 2026                            *
+//* Package:      controller_reference_test                                    *
+//* Name:         ControllerReferenceTest                                      *
+//* Written by:   Will Gibbs                                                   *
+//* Written date: 2026-01-22                                                   *
+//******************************************************************************
+
+//******************************************************************************
+//* This program is meant to test the ControllerReference class definition. It *
+//* can also be used as an example for how the manager should interact with a  *
+//* ControllerReference object (specifically, the `init_controller_reference`  *
+//* function).                                                                 *
+//******************************************************************************
+
 // C++-specific packages
 #include <memory>
 #include <chrono>
@@ -16,7 +31,10 @@ using namespace std;
 using namespace rclcpp;
 using namespace std::chrono_literals;
 
-// The definition of a controller reference test class
+//******************************************************************************
+//*                              Class Definition                              *
+//******************************************************************************
+// The definition of a node to test the ControllerReference class
 class ControllerReferenceTest : public Node
 {
    // Test ControllerReference objects
