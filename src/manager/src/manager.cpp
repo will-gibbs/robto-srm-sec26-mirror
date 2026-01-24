@@ -16,6 +16,7 @@
 //******************************************************************************
 
 #include <iostream>
+#include <vector>
 #include "rclcpp/rclcpp.hpp"
 #include "sec_interfaces/srv/RegisterController.hpp" // ? Check this file name
 #inlcude "sec_interfaces/srv/StartRound.hpp" // ? Same here
@@ -31,10 +32,10 @@ using namespace rclcpp;
 // Robto's central processing manager node
 class Manager : public Node
 {
-   int                 round_has_started;     // Indicates whether the round has begun
+   int                 round_has_started = 0; // Indicates whether the round has begun
    // ? For now, p_controllers will be an array of integers
    // ? All instances should be changed to ControllerReference object pointers once that class can be implemented
-   int                 *p_controllers;        // List of Robto's controllers
+   vector<int>         controllers;           // List of Robto's controllers
    Subscription<builtin_interfaces::msg::Duration>::SharedPointer
                        round_time_subscriber; // Subscription to the time remaining in the round
 
@@ -60,7 +61,7 @@ public:
 //******************************************************************************
 //* Manager Class Constructor *
 //******************************************************************************
-Manager::Manager()
+Manager::Manager() : Node("manager")
 {
 
 }
@@ -94,7 +95,7 @@ void start_round_callback(
 {
    if (request->start_round == START_ROUND)
    {
-      this->round_has_started = 1;
+      round_has_started        = 1;
       response->manager_status = OK;
       RCLCPP_INFO(get_logger("rclcpp"), "Starting Robto's mission. Hang in there, Astroducks!");
       // ? Start round logic
@@ -110,8 +111,10 @@ void start_round_callback(
 //******************************************************************************
 //* Add a new controller to the list *
 //******************************************************************************
-void Manager::add_controller()
+void Manager::add_controller(int new_controller)
 {
+   controllers.push_back(new_controller);
+   sort_controllers();
    return;
 }
 
@@ -120,6 +123,11 @@ void Manager::add_controller()
 //******************************************************************************
 void Manager::sort_controllers()
 {
+   sort(controllers.begin(), controllers.end(), 
+      [](auto& first_controller, auto& last_controller)
+      {
+         return first_controller > last_controller;
+      });
    return;
 }
 
