@@ -1,4 +1,20 @@
-// This is bad code; this is not complete
+//******************************************************************************
+//* Project: Robto SRM, IEEE SoutheastCon 2026                                 *
+//* Package: Controller                                                        *
+//* Name:    controller.hpp                                                       *
+//******************************************************************************
+
+//******************************************************************************
+//* This program is the implementation of Robto's Controller node. The         *
+//* Controller will act as an interface for individual controllers focused on  *
+//* completing specific tasks. Any controller inheriting from this will need   *
+//* to implement the handle_goal, handle_cancel, handle_accepted, and execute  *
+//* functions.                                                                 *
+//*                                                                            *
+//* Services:                                                                  *
+//* - action_server                                                            *
+//* -                                                                          *
+//******************************************************************************
 
 // C++-specific packages
 #include <functional>
@@ -20,12 +36,17 @@ using namespace std::placeholders;
 using namespace rclcpp;
 using namespace sec_interfaces::srv;
 
+//******************************************************************************
+//*                              Class Definition                              *
+//******************************************************************************
+// Robto's controller interface node
 class Controller : public Node
 {
 public:
     using CompleteTask = sec_interfaces::action::CompleteTask;
     using GoalHandleCompleteTask = rclcpp_action::ServerGoalHandle<CompleteTask>;
 
+    // Receives the objective to complete
     virtual rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID & uuid, shared_ptr<const CompleteTask::Goal> goal)
     {
         RCLCPP_INFO(get_logger(), "Received goal with begin task value of %d", goal->begin_task);
@@ -33,6 +54,7 @@ public:
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     };
 
+    // Handles canceling the goal
     virtual rclcpp_action::CancelResponse handle_cancel(const shared_ptr<GoalHandleCompleteTask> goal_handle)
     {
         RCLCPP_INFO(get_logger(), "Received cancel request.");
@@ -40,6 +62,7 @@ public:
         return rclcpp_action::CancelResponse::ACCEPT;
     };
 
+    // Determines whether or not the goal is acceptable
     virtual void handle_accepted(const shared_ptr<GoalHandleCompleteTask> goal_handle)
     {
         RCLCPP_INFO(get_logger(), "Accepted a goal.");
@@ -47,12 +70,14 @@ public:
         thread{execute_in_thread}.detach();
     };
 
+    // Executes the goal
     virtual void execute(const shared_ptr<GoalHandleCompleteTask> goal_handle)
     {
         RCLCPP_INFO(this->get_logger(), "Executing goal");
         const auto goal = goal_handle->get_goal();
     }
 
+    // Constructs controller objects
     Controller(const string name, std::chrono::milliseconds tick_rate) : Node(name)
     {
         action_name = name;
@@ -75,5 +100,6 @@ private:
     TimerBase::SharedPtr                              timer;
     std::chrono::milliseconds                         timer_tick_rate;
 
+    // Loops to perform a task
     virtual void timer_callback() {};
 };
