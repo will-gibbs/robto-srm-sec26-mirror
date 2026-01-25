@@ -8,7 +8,17 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 find_package(sec_interfaces REQUIRED)
+find_package(sec_core_classes REQUIRED)
+
+add_executable(manager src/manager.cpp)
+ament_target_dependencies(manager rclcpp rclcpp_action builtin_interfaces sec_interfaces sec_core_classes)
+
+install(TARGETS
+  manager
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
