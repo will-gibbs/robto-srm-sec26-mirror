@@ -26,6 +26,10 @@
 using namespace std;
 using namespace rclcpp;
 
+// Aliases
+using RegisterController = sec_interfaces::srv::RegisterController;
+using StartRound = sec_interfaces::srv::StartRound;
+
 //******************************************************************************
 //*                              Class Definition                              *
 //******************************************************************************
@@ -41,13 +45,13 @@ class Manager : public Node
 
    // ?
    void register_controller_callback(
-      const sec_interfaces::srv::RegisterController::Request  request,
-            sec_interfaces::srv::RegisterController::Response response
+      const RegisterController::Request  request,
+            RegisterController::Response response
    );
    // ? start_round_callback();
    void start_round_callback(
-      const sec_interfaces::srv::StartRound::Request  request,
-            sec_interfaces::srv::StartRound::Response response
+      const StartRound::Request  request,
+            StartRound::Response response
    );
    // Add a controller to the list
    void add_controller();
@@ -64,18 +68,21 @@ public:
 Manager::Manager() : Node("manager")
 {
    // Create services for registering controllers and starting the round
-   Service<sec_interfaces::srv::RegisterController>::SharedPointer register_controller = 
-      node->create_service<sec_interfaces::srv::RegisterController>("register_controller", &register_controller_callback);
-   Service<sec_interfaces::srv::StartRound>::        SharedPointer start_round =
-      node->create_service<sec_interfaces::srv::StartRound>        ("start_round",         &start_round_callback);
+   Service<RegisterController>::SharedPointer register_controller = 
+      node->create_service<RegisterController>
+      ("register_controller",
+       [this](const RegisterController::Request  request,
+         RegisterController::Response response) {Manager::register_controller_callback(request, response);});
+   Service<StartRound>::SharedPointer start_round =
+      node->create_service<StartRound>        ("start_round",         &start_round_callback);
 }
 
 //******************************************************************************
 //* ? *
 //******************************************************************************
 void Manager::register_controller_callback(
-   const sec_interfaces::srv::RegisterController::Request  request,
-         sec_interfaces::srv::RegisterController::Response response)
+   const RegisterController::Request  request,
+         RegisterController::Response response)
 {
    int priority; // Priority of the controller's task
 
@@ -94,8 +101,8 @@ void Manager::register_controller_callback(
 //*                           Start Robto's mission                            *
 //******************************************************************************
 void start_round_callback(
-   const sec_interfaces::srv::StartRound::Request  request,
-         sec_interfaces::srv::StartRound::Response response)
+   const StartRound::Request  request,
+         StartRound::Response response)
 {
    if (request->start_round == START_ROUND)
    {
