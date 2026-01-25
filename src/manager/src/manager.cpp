@@ -10,6 +10,11 @@
 //* (subsystems responsible for completing tasks), sorting them according to   *
 //* priority, and granting them the almighty Talking Stck.                     *
 //*                                                                            *
+//* Since ControllerReference objects contain action clients and service       *
+//* servers but are not nodes, the Manager will create the                     *
+//* controller_complete_task action client and the controller_update_task      *
+//* service server when the controller is registered with the manager.         *
+//*                                                                            *
 //* Services:                                                                  *
 //* - start_round                                                              *
 //* - register_controller                                                      *
@@ -18,23 +23,31 @@
 //* - round_time                                                               *
 //******************************************************************************
 
+// C++-specific packages
 #include <iostream>
 #include <memory>
 #include <chrono>
 #include <vector>
+
+// ROS2-specific packages
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "builtin_interfaces/msg/duration.hpp"
+
+// Custom packages
 #include "sec_interfaces/srv/register_controller.hpp"
 #include "sec_interfaces/srv/start_round.hpp"
 #include "sec_core_classes/controller_reference.hpp"
+
+// Namespaces
 using namespace std;
 using namespace rclcpp;
 using namespace std::chrono_literals;
 
 // Aliases
-using RegisterController = sec_interfaces::srv::RegisterController;
-using StartRound         = sec_interfaces::srv::StartRound;
+using RegisterController   = sec_interfaces::srv::RegisterController;
+using StartRound           = sec_interfaces::srv::StartRound;
+using ControllerUpdateTask = sec_interfaces::srv::ControllerUpdateTask;
 
 // Symbolic constants
 #define TICK_RATE 100ms
@@ -82,16 +95,20 @@ Manager::Manager() : Node("manager")
    register_controller = create_service<RegisterController>
       ("register_controller",
        [this](const shared_ptr<RegisterController::Request>  request,
-                    shared_ptr<RegisterController::Response> response) {Manager::register_controller_callback(request, response);});
+                    shared_ptr<RegisterController::Response> response) 
+       { Manager::register_controller_callback(request, response); });
    start_round         = create_service<StartRound>
       ("start_round",
        [this](const shared_ptr<StartRound::        Request>  request,
-                    shared_ptr<StartRound::        Response> response) {Manager::start_round_callback(request, response);});
+                    shared_ptr<StartRound::        Response> response) 
+       { Manager::start_round_callback(request, response);         });
 
    // Create a subscriber for getting the time remaining in the mission
-   round_time_subscriber = create_subscription<builtin_interfaces::msg::Duration>("round_time", 10, [this](builtin_interfaces::msg::Duration::UniquePtr message) {RCLCPP_INFO(get_logger(), "Message: %d, %d", message->sec, message->nanosec);});
+   round_time_subscriber = create_subscription<builtin_interfaces::msg::Duration>
+      ("round_time", 10, [this](builtin_interfaces::msg::Duration::UniquePtr message) 
+                         { RCLCPP_INFO(get_logger(), "Message: %d, %d", message->sec, message->nanosec); });
 
-   // Create a time that will run the given callback function after every designated interval
+   // Create a timer that will run the given callback function after every designated interval
    timer = create_wall_timer(TICK_RATE, [this]() {timer_callback();});
 }
 
@@ -102,19 +119,28 @@ void Manager::register_controller_callback(
    const shared_ptr<RegisterController::Request>  request,
          shared_ptr<RegisterController::Response> response)
 {
-   // float priority; // Priority of the controller's task
-
-   // ? Assign an arbitrary priority value
-   // priority = (int)request->controller_action_name[0];
+   // TODO: Add error handling
 
    // Create a new controller reference
    ControllerReference new_controller_reference(request->controller_action_name);
 
    // Add the new controller to the list
-   add_controller(new_controller_reference); //? will be replaced with the ControllerReference object
-   // ? TODO: Add error handling
+   add_controller(new_controller_reference);
+   RCLCPP_INFO(get_logger(), "Registered the controller %s", request->controller_action_name.c_str());
+
+   // Calculate the new controller's priority
+
+   // Create the controller_update_task service server for the new controller reference
+   new_controller_reference = create_service<ControllerUpdateTask>
+      ("controller_update_task", 
+       [this](const shared_ptr<ControllerUpdateTask::Request>  request,
+                    shared_ptr<ControllerUpdateTask::Response> response)
+       {new_controller_reference.controller_update_task_callback(request, response)});
+
+   // Create the controller_complete_task action client
+
+   // Set the status of the registration in the service response for the new controller reference
    response->registration_status_code = response->OK;
-   RCLCPP_INFO(get_logger(), "Added the controller %s", request->controller_action_name.c_str());
    return;
 }
 
@@ -194,3 +220,18 @@ int main(int argc, char **argv)
    shutdown();
    return 0;
 }
+
+
+
+
+
+
+// controller_update_task service server TODO:
+// - Code
+// - CMake and package.xml file updates
+// Questions:
+// - Is there an interface defined?
+
+// controller_complete_task action client TODO:
+// - Code
+// - CMake and package.xml file updates
