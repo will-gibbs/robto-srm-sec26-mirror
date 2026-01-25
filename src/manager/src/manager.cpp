@@ -63,7 +63,11 @@ public:
 //******************************************************************************
 Manager::Manager() : Node("manager")
 {
-
+   // Create services for registering controllers and starting the round
+   Service<sec_interfaces::srv::RegisterController>::SharedPointer register_controller = 
+      node->create_service<sec_interfaces::srv::RegisterController>("register_controller", &register_controller_callback);
+   Service<sec_interfaces::srv::StartRound>::        SharedPointer start_round =
+      node->create_service<sec_interfaces::srv::StartRound>        ("start_round",         &start_round_callback);
 }
 
 //******************************************************************************
@@ -141,12 +145,6 @@ int main(int argc, char **argv)
 
    // Create the manager node
    shared_ptr<Node> node = Node::make_shared("manager");
-
-   // Create services for registering controllers and starting the round
-   Service<sec_interfaces::srv::RegisterController>::SharedPointer register_controller = 
-      node->create_service<sec_interfaces::srv::RegisterController>("register_controller", &register_controller_callback);
-   Service<sec_interfaces::srv::StartRound>::        SharedPointer start_round =
-      node->create_service<sec_interfaces::srv::StartRound>        ("start_round",         &start_round_callback);
 
    // ? Manager logic goes here
 
