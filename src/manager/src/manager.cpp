@@ -143,16 +143,11 @@ int main(int argc, char **argv)
    // Initialize ROS2 C++ client library
    init(argc, argv);
 
-   // Create the manager node
-   shared_ptr<Node> node = Node::make_shared("manager");
-
-   // ? Manager logic goes here
-
    // Print a message indicating that the maager is ready
    RCLCPP_INFO(get_logger("rclcpp"), "Robto's Manager is on board and ready to go.");
 
    // Spin up the node
-   spin(node);
+   spin(make_shared<Manager>());
    shutdown();
    return 0;
 }
