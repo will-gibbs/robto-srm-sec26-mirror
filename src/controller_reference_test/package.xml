@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>sec_core_classes</name>
+  <name>controller_reference_test</name>
   <version>0.0.0</version>
-  <description>Includes all core Robto SRM SeC 2026 system classes.</description>
+  <description>TODO: Package description</description>
   <maintainer email="will.gibbs7793@gmail.com">will-gibbs</maintainer>
   <license>TODO: License declaration</license>
 
@@ -15,6 +15,7 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>sec_interfaces</depend>
+  <depend>sec_core_classes</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
