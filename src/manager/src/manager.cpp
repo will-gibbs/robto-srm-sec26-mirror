@@ -20,6 +20,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sec_interfaces/srv/register_controller.hpp"
 #include "sec_interfaces/srv/start_round.hpp"
+#include "sec_core_classes/controller_reference.hpp"
 // TODO: Future imports
 // ControllerReference
 // RegisterController
@@ -39,9 +40,12 @@ class Manager : public Node
    int                 round_has_started = 0; // Indicates whether the round has begun
    // ? For now, p_controllers will be an array of integers
    // ? All instances should be changed to ControllerReference object pointers once that class can be implemented
-   vector<int>         controllers;           // List of Robto's controllers
+   vector<ControllerReference>         controllers;           // List of Robto's controllers
    Subscription<builtin_interfaces::msg::Duration>::SharedPointer
                        round_time_subscriber; // Subscription to the time remaining in the round
+
+   Service<RegisterController>::SharedPointer register_controller;
+   Service<StartRound>::SharedPointer         start_round;
 
    // ?
    void register_controller_callback(
@@ -68,16 +72,19 @@ public:
 Manager::Manager() : Node("manager")
 {
    // Create services for registering controllers and starting the round
-   Service<RegisterController>::SharedPointer register_controller = 
+   register_controller = 
       node->create_service<RegisterController>
       ("register_controller",
        [this](const RegisterController::Request  request,
                     RegisterController::Response response) {Manager::register_controller_callback(request, response);});
-   Service<StartRound>::SharedPointer start_round =
+   start_round =
       node->create_service<StartRound>
          ("start_round",
          [this](const StartRound::Request  request,
                       StartRound::Response response) {Manager::start_round_callback(request, response);});
+
+   // Create round time subscriber
+   round_time_subscriber = create_subscription<builtin_interfaces::msg::Duration>("round_time", 10, void);
 }
 
 //******************************************************************************
@@ -87,13 +94,16 @@ void Manager::register_controller_callback(
    const RegisterController::Request  request,
          RegisterController::Response response)
 {
-   int priority; // Priority of the controller's task
+   // float priority; // Priority of the controller's task
 
    // ? Assign an arbitrary priority value
-   priority = (int)request->controller_action_name[0];
+   // priority = (int)request->controller_action_name[0];
+
+   // Create a new controller reference
+   ControllerReference new_controller_reference = new ControllerReference(request->controller_action_name);
 
    // Add the new controller to the list
-   add_controller(priority); //? will be replaced with the ControllerReference object
+   add_controller(new_controller_reference); //? will be replaced with the ControllerReference object
    // ? TODO: Add error handling
    response->regisration_status_code == response->OK;
    RCLCPP_INFO(get_logger("rclcpp"), "Added the controller %s", request->controller_action_name);
@@ -125,7 +135,7 @@ void start_round_callback(
 //******************************************************************************
 //* Add a new controller to the list *
 //******************************************************************************
-void Manager::add_controller(int new_controller)
+void Manager::add_controller(ControllerReference new_controller)
 {
    controllers.push_back(new_controller);
    sort_controllers();
@@ -140,7 +150,7 @@ void Manager::sort_controllers()
    sort(controllers.begin(), controllers.end(), 
       [](auto& first_controller, auto& last_controller)
       {
-         return first_controller > last_controller;
+         return first_controller->tast_priority > last_controller->task_priority;
       });
    return;
 }
