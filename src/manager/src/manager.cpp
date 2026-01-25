@@ -18,8 +18,8 @@
 #include <iostream>
 #include <vector>
 #include "rclcpp/rclcpp.hpp"
-#include "sec_interfaces/srv/RegisterController.hpp" // ? Check this file name
-#inlcude "sec_interfaces/srv/StartRound.hpp" // ? Same here
+#include "sec_interfaces/srv/register_controller.hpp"
+#include "sec_interfaces/srv/start_round.hpp"
 // TODO: Future imports
 // ControllerReference
 // RegisterController
@@ -95,7 +95,7 @@ void Manager::register_controller_callback(
    // Add the new controller to the list
    add_controller(priority); //? will be replaced with the ControllerReference object
    // ? TODO: Add error handling
-   response->regisration_status_code == OK;
+   response->regisration_status_code == response->OK;
    RCLCPP_INFO(get_logger("rclcpp"), "Added the controller %s", request->controller_action_name);
    return;
 }
@@ -107,16 +107,16 @@ void start_round_callback(
    const StartRound::Request  request,
          StartRound::Response response)
 {
-   if (request->start_round == START_ROUND)
+   if (request->start_round == request->START_ROUND)
    {
       round_has_started        = 1;
-      response->manager_status = OK;
+      response->manager_status = response->OK;
       RCLCPP_INFO(get_logger("rclcpp"), "Starting Robto's mission. Hang in there, Astroducks!");
       // ? Start round logic
    }
    else
    {
-      response->manager_status = ERROR;
+      response->manager_status = response->ERROR;
       RCLCPP_INFO(get_logger("rclcpp"), "Something went wrong with starting the round.");
    }
    return;
