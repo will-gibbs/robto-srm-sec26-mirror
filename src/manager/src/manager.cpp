@@ -72,9 +72,12 @@ Manager::Manager() : Node("manager")
       node->create_service<RegisterController>
       ("register_controller",
        [this](const RegisterController::Request  request,
-         RegisterController::Response response) {Manager::register_controller_callback(request, response);});
+                    RegisterController::Response response) {Manager::register_controller_callback(request, response);});
    Service<StartRound>::SharedPointer start_round =
-      node->create_service<StartRound>        ("start_round",         &start_round_callback);
+      node->create_service<StartRound>
+         ("start_round",
+         [this](const StartRound::Request  request,
+                      StartRound::Response response) {Manager::start_round_callback(request, response);});
 }
 
 //******************************************************************************
