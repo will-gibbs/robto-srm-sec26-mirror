@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(sec_core_classes)
+project(controller_reference_test)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -12,19 +12,15 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
-
-find_package(rclcpp_components REQUIRED)
-# find_package(sec_core_classes REQUIRED)
 find_package(sec_interfaces REQUIRED)
+find_package(sec_core_classes REQUIRED)
 
-find_package(sec_interfaces REQUIRED)
+add_executable(controller_reference_test src/controller_reference_test.cpp)
+ament_target_dependencies(controller_reference_test rclcpp rclcpp_action sec_interfaces sec_core_classes)
 
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
-ament_export_include_directories(include)
+install(TARGETS
+  controller_reference_test
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -37,11 +33,5 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-# find_package(rosidl_default_generators REQUIRED)
-
-# rosidl_generate_interfaces(${PROJECT_NAME}
-#   "action/Control.action"
-# )
 
 ament_package()
