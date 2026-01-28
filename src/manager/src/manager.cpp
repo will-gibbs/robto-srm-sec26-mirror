@@ -37,6 +37,7 @@
 // Custom packages
 #include "sec_interfaces/srv/register_controller.hpp"
 #include "sec_interfaces/srv/start_round.hpp"
+#include "sec_interfaces/action/complete_task.hpp"
 #include "sec_core_classes/controller_reference.hpp"
 
 // Namespaces
@@ -45,6 +46,7 @@ using namespace rclcpp;
 using namespace std::chrono_literals;
 
 // Aliases
+using CompleteTask         = sec_interfaces::action::CompleteTask;
 using RegisterController   = sec_interfaces::srv::RegisterController;
 using StartRound           = sec_interfaces::srv::StartRound;
 using UpdateTask           = sec_interfaces::srv::UpdateTask;
@@ -58,12 +60,12 @@ using UpdateTask           = sec_interfaces::srv::UpdateTask;
 // Robto's central processing manager node
 class Manager : public Node
 {
-   int                                                             round_has_started = 0; // Indicates whether the round has begun
-   vector<shared_ptr<ControllerReference>>                         controllers;           // List of pointers to Robto's controllers
-   Subscription<builtin_interfaces::msg::Duration>::SharedPtr      round_time_subscriber; // Subscription to the time remaining in the round
-   Service<RegisterController>::SharedPtr                          register_controller;   // Service for registering new controllers
-   Service<StartRound>::SharedPtr                                  start_round;           // Service for starting Robto's mission
-   TimerBase::SharedPtr                                            timer;                 // Timer
+   int                                                        round_has_started = 0; // Indicates whether the round has begun
+   vector<shared_ptr<ControllerReference>>                    controllers;           // List of pointers to Robto's controllers
+   Subscription<builtin_interfaces::msg::Duration>::SharedPtr round_time_subscriber; // Subscription to the time remaining in the round
+   Service<RegisterController>::SharedPtr                     register_controller;   // Service for registering new controllers
+   Service<StartRound>::SharedPtr                             start_round;           // Service for starting Robto's mission
+   TimerBase::SharedPtr                                       timer;                 // Timer
 
    // Callback function for registering a new controller
    void register_controller_callback(
@@ -127,10 +129,11 @@ void Manager::register_controller_callback(
 {
    // TODO: Add error handling
 
-   shared_ptr<ControllerReference> new_controller_reference  = std::make_shared<ControllerReference>(request->controller_action_name);
-                                                                                         // New controller reference being added to the list
-   weak_ptr<ControllerReference>   weak_controller_reference = new_controller_reference; // Weak pointer to the new controller reference to avoid memory leaks
-   Service<UpdateTask>::SharedPtr  new_controller_service;                               // The update task service for the new controller
+   shared_ptr<ControllerReference>                new_controller_reference  = std::make_shared<ControllerReference>(request->controller_action_name);
+                                                                                                        // New controller reference being added to the list
+   weak_ptr<ControllerReference>                  weak_controller_reference = new_controller_reference; // Weak pointer to the new controller reference to avoid memory leaks
+   Service<UpdateTask>::SharedPtr                 new_controller_service;                               // Update task service server for the new controller
+   rclcpp_action::Client<CompleteTask>::SharedPtr new_controller_action_client;                         // Complete task action client for the new controller
    
    // Add the new controller to the list
    add_controller(new_controller_reference);
@@ -154,6 +157,10 @@ void Manager::register_controller_callback(
    new_controller_reference->set_controller_update_task(new_controller_service);
 
    // Create the controller_complete_task action client
+   new_controller_action_client = rclcpp::create_client<UpdateTask>(this, "complete_task"); // ? What are these parameters?
+   auto complete_task_goal = CompleteTask::Goal(); // Get a reference to the action goal
+   complete_task_goal.begin_task = new_controller_action_client.BEGIN_TASK; // Set the action goal
+   auto complete_task_callbacks = rclcpp_action::Client<CompleteTask>::SendGoalOptions; // Callback functions for the new action client
 
    // Set the status of the registration in the service response for the new controller reference
    response->registration_status_code = response->OK;
@@ -229,7 +236,7 @@ int main(int argc, char **argv)
    init(argc, argv);
 
    // Print a message indicating that the maager is ready
-   RCLCPP_INFO(get_logger("rclcpp"), "Robto's Manager is on board and ready to go.");
+   RCLCPP_INFO(get_logger("rclcpp"), "Robto's Manager is online and ready to go.");
 
    // Spin up the node
    spin(make_shared<Manager>());
@@ -237,14 +244,8 @@ int main(int argc, char **argv)
    return 0;
 }
 
-
-
-
-
-
-// controller_update_task service server TODO:
-// - CMake and package.xml file updates
-
-// controller_complete_task action client TODO:
-// - Code
-// - CMake and package.xml file updates
+// TODO:
+// - Finish action client and adjust controller_reference.hpp
+// - Action client CMake and package.xml file updates if necessary
+// - Add logging
+// - Polish documentation
