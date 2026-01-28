@@ -47,7 +47,7 @@ using namespace std::chrono_literals;
 // Aliases
 using RegisterController   = sec_interfaces::srv::RegisterController;
 using StartRound           = sec_interfaces::srv::StartRound;
-using ControllerUpdateTask = sec_interfaces::srv::ControllerUpdateTask;
+using UpdateTask           = sec_interfaces::srv::UpdateTask;
 
 // Symbolic constants
 #define TICK_RATE 100ms
@@ -58,12 +58,12 @@ using ControllerUpdateTask = sec_interfaces::srv::ControllerUpdateTask;
 // Robto's central processing manager node
 class Manager : public Node
 {
-   int                                                        round_has_started = 0; // Indicates whether the round has begun
-   vector<ControllerReference>                                controllers;           // List of Robto's controllers
-   Subscription<builtin_interfaces::msg::Duration>::SharedPtr round_time_subscriber; // Subscription to the time remaining in the round
-   Service<RegisterController>::SharedPtr                     register_controller;   // Service for registering new controllers
-   Service<StartRound>::SharedPtr                             start_round;           // Service for starting Robto's mission
-   TimerBase::SharedPtr                                       timer;                 // Timer
+   int                                                             round_has_started = 0; // Indicates whether the round has begun
+   vector<shared_ptr<ControllerReference>>                         controllers;           // List of pointers to Robto's controllers
+   Subscription<builtin_interfaces::msg::Duration>::SharedPtr      round_time_subscriber; // Subscription to the time remaining in the round
+   Service<RegisterController>::SharedPtr                          register_controller;   // Service for registering new controllers
+   Service<StartRound>::SharedPtr                                  start_round;           // Service for starting Robto's mission
+   TimerBase::SharedPtr                                            timer;                 // Timer
 
    // Callback function for registering a new controller
    void register_controller_callback(
@@ -78,7 +78,7 @@ class Manager : public Node
    // Callback funtion for the timer
    void timer_callback();
    // Add a new controller reference to the list
-   void add_controller(ControllerReference new_controller);
+   void add_controller(shared_ptr<ControllerReference> new_controller);
    // Sort the controllers into descending order of priority
    void sort_controllers();
 public:
@@ -87,26 +87,32 @@ public:
 };
 
 //******************************************************************************
-//* Manager Class Constructor *
+//*                         Manager Class Constructor                          *
 //******************************************************************************
 Manager::Manager() : Node("manager")
 {
    // Create services for registering controllers and starting the round
    register_controller = create_service<RegisterController>
-      ("register_controller",
-       [this](const shared_ptr<RegisterController::Request>  request,
-                    shared_ptr<RegisterController::Response> response) 
-       { Manager::register_controller_callback(request, response); });
-   start_round         = create_service<StartRound>
-      ("start_round",
-       [this](const shared_ptr<StartRound::        Request>  request,
-                    shared_ptr<StartRound::        Response> response) 
-       { Manager::start_round_callback(request, response);         });
+   (
+      "register_controller",
+      [this](const shared_ptr<RegisterController::Request>  request,
+                   shared_ptr<RegisterController::Response> response) 
+      { Manager::register_controller_callback(request, response); }
+   );
+   start_round = create_service<StartRound>
+   (
+      "start_round",
+      [this](const shared_ptr<StartRound::Request>  request,
+                   shared_ptr<StartRound::Response> response) 
+      { Manager::start_round_callback(request, response); }
+   );
 
    // Create a subscriber for getting the time remaining in the mission
    round_time_subscriber = create_subscription<builtin_interfaces::msg::Duration>
-      ("round_time", 10, [this](builtin_interfaces::msg::Duration::UniquePtr message) 
-                         { RCLCPP_INFO(get_logger(), "Message: %d, %d", message->sec, message->nanosec); });
+   (
+      "round_time", 10, [this](builtin_interfaces::msg::Duration::UniquePtr message) 
+      { RCLCPP_INFO(get_logger(), "Message: %d, %d", message->sec, message->nanosec); }
+   );
 
    // Create a timer that will run the given callback function after every designated interval
    timer = create_wall_timer(TICK_RATE, [this]() {timer_callback();});
@@ -121,21 +127,31 @@ void Manager::register_controller_callback(
 {
    // TODO: Add error handling
 
-   // Create a new controller reference
-   ControllerReference new_controller_reference(request->controller_action_name);
-
+   shared_ptr<ControllerReference> new_controller_reference  = std::make_shared<ControllerReference>(request->controller_action_name);
+                                                                                         // New controller reference being added to the list
+   weak_ptr<ControllerReference>   weak_controller_reference = new_controller_reference; // Weak pointer to the new controller reference to avoid memory leaks
+   Service<UpdateTask>::SharedPtr  new_controller_service;                               // The update task service for the new controller
+   
    // Add the new controller to the list
    add_controller(new_controller_reference);
-   RCLCPP_INFO(get_logger(), "Registered the controller %s", request->controller_action_name.c_str());
+   RCLCPP_INFO(get_logger(), "Controller %s is online.", request->controller_action_name.c_str());
 
    // Calculate the new controller's priority
 
    // Create the controller_update_task service server for the new controller reference
-   new_controller_reference = create_service<ControllerUpdateTask>
-      ("controller_update_task", 
-       [this](const shared_ptr<ControllerUpdateTask::Request>  request,
-                    shared_ptr<ControllerUpdateTask::Response> response)
-       {new_controller_reference.controller_update_task_callback(request, response)});
+   new_controller_service = create_service<UpdateTask>
+   (
+      "controller_update_task/" + new_controller_reference->get_controller_name(),
+      [this, weak_controller_reference](const shared_ptr<UpdateTask::Request>  request,
+                                              shared_ptr<UpdateTask::Response> response)
+      { 
+         if (auto strong_controller_reference = weak_controller_reference.lock())
+         {
+            strong_controller_reference->controller_update_task_callback(request, response);
+         }
+      }
+   );
+   new_controller_reference->set_controller_update_task(new_controller_service);
 
    // Create the controller_complete_task action client
 
@@ -169,7 +185,7 @@ void Manager::start_round_callback(
 //******************************************************************************
 //*                      Add a new controller to the list                      *
 //******************************************************************************
-void Manager::add_controller(ControllerReference new_controller)
+void Manager::add_controller(shared_ptr<ControllerReference> new_controller)
 {
    controllers.push_back(new_controller);
    sort_controllers();
@@ -184,7 +200,7 @@ void Manager::sort_controllers()
    sort(controllers.begin(), controllers.end(), 
       [](auto& first_controller, auto& last_controller)
       {
-         return first_controller.get_task_priority() > last_controller.get_task_priority();
+         return first_controller->get_task_priority() > last_controller->get_task_priority();
       });
    return;
 }
@@ -227,10 +243,7 @@ int main(int argc, char **argv)
 
 
 // controller_update_task service server TODO:
-// - Code
 // - CMake and package.xml file updates
-// Questions:
-// - Is there an interface defined?
 
 // controller_complete_task action client TODO:
 // - Code
