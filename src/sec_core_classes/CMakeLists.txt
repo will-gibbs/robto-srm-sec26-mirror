@@ -13,12 +13,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 
-find_package(rclcpp_components REQUIRED)
-# find_package(sec_core_classes REQUIRED)
-find_package(sec_interfaces REQUIRED)
-
-find_package(sec_interfaces REQUIRED)
-
 install(
   DIRECTORY include/
   DESTINATION include
@@ -39,9 +33,5 @@ if(BUILD_TESTING)
 endif()
 
 # find_package(rosidl_default_generators REQUIRED)
-
-# rosidl_generate_interfaces(${PROJECT_NAME}
-#   "action/Control.action"
-# )
 
 ament_package()

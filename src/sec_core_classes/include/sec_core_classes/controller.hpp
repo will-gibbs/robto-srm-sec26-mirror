@@ -80,23 +80,25 @@ public:
     // Constructs controller objects
     Controller(const string name, std::chrono::milliseconds tick_rate) : Node(name)
     {
-        action_name = name;
+        controller_name = name;
         timer_tick_rate = tick_rate;
 
         this->complete_task = rclcpp_action::create_server<CompleteTask>(
             this,
-            name,
+            name + "/complete_task",
             [this](const auto & uuid, const auto & goal) {return handle_goal(uuid, goal);},
             [this](const auto & goal_handle) {return handle_cancel(goal_handle);},
             [this](const auto & goal_handle) {handle_accepted(goal_handle);});
         
+        update_task = create_client<UpdateTask>(name + "/update_task");
+
         timer = create_wall_timer(timer_tick_rate, [this]() {return timer_callback();});
     };
 private:
     rclcpp_action::Server<CompleteTask>::SharedPtr    complete_task;
     Client<RegisterController>::SharedPtr             register_controller;
     Client<UpdateTask>::SharedPtr                     update_task;
-    string                                            action_name;
+    string                                            controller_name;
     TimerBase::SharedPtr                              timer;
     std::chrono::milliseconds                         timer_tick_rate;
 
