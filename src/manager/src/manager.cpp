@@ -5,10 +5,13 @@
 //******************************************************************************
 
 //******************************************************************************
-//* This program is the implementation of Robto's Manager node. The manager is *
-//* responsible for starting the mission, registering Robto's controllers      *
-//* (subsystems responsible for completing tasks), sorting them according to   *
-//* priority, and granting them the almighty Talking Stck.                     *
+//* This program is Robto's Manager, his central processing logic. Before the  *
+//* mission begins, all Controllers will register themselves with the Manager. *
+//* The Manager creates a ControllerReference for each Controller registered,  *
+//* which acts as an arm of the Manager responsible for interacting with the   *
+//* Controller. The Manager decides the task completion order and bestows the  *
+//* almighty Talking Stick to one Controller at a time. Upon request, the      *
+//* Manager starts the mission and begins to execute tasks in order.           *
 //*                                                                            *
 //* Since ControllerReference objects contain action clients and service       *
 //* servers but are not nodes, the Manager will create the                     *
@@ -46,10 +49,10 @@ using namespace rclcpp;
 using namespace std::chrono_literals;
 
 // Aliases
-using CompleteTask         = sec_interfaces::action::CompleteTask;
-using RegisterController   = sec_interfaces::srv::RegisterController;
-using StartRound           = sec_interfaces::srv::StartRound;
-using UpdateTask           = sec_interfaces::srv::UpdateTask;
+using CompleteTask       = sec_interfaces::action::CompleteTask;
+using RegisterController = sec_interfaces::srv::RegisterController;
+using StartRound         = sec_interfaces::srv::StartRound;
+using UpdateTask         = sec_interfaces::srv::UpdateTask;
 
 // Symbolic constants
 #define TICK_RATE 100ms
@@ -129,15 +132,11 @@ void Manager::register_controller_callback(
 {
    // TODO: Add error handling
 
-   shared_ptr<ControllerReference>                new_controller_reference  = std::make_shared<ControllerReference>(request->controller_action_name);
+   shared_ptr<ControllerReference>                new_controller_reference  = std::make_shared<ControllerReference>(request->controller_action_name, this);
                                                                                                         // New controller reference being added to the list
    weak_ptr<ControllerReference>                  weak_controller_reference = new_controller_reference; // Weak pointer to the new controller reference to avoid memory leaks
    Service<UpdateTask>::SharedPtr                 new_controller_service;                               // Update task service server for the new controller
    rclcpp_action::Client<CompleteTask>::SharedPtr new_controller_action_client;                         // Complete task action client for the new controller
-   
-   // Add the new controller to the list
-   add_controller(new_controller_reference);
-   RCLCPP_INFO(get_logger(), "Controller %s is online.", request->controller_action_name.c_str());
 
    // Create the controller_update_task service server for the new controller reference
    new_controller_service = create_service<UpdateTask>
@@ -157,6 +156,10 @@ void Manager::register_controller_callback(
    // Create the controller_complete_task action client for the new controller reference
    new_controller_action_client  = rclcpp_action::create_client<CompleteTask>(this, "complete_task/" + new_controller_reference->get_controller_name());
    new_controller_reference->set_controller_complete_task(new_controller_action_client);
+   
+   // Add the new controller to the list
+   add_controller(new_controller_reference);
+   RCLCPP_INFO(get_logger(), "Controller %s is online.", request->controller_action_name.c_str());
 
    // Set the status of the registration in the service response for the new controller reference
    response->registration_status_code = response->OK;
@@ -239,9 +242,3 @@ int main(int argc, char **argv)
    shutdown();
    return 0;
 }
-
-// TODO:
-// - Finish action client and adjust controller_reference.hpp
-// - Action client CMake and package.xml file updates if necessary
-// - Add logging
-// - Polish documentation
