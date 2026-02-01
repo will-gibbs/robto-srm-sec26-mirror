@@ -139,8 +139,6 @@ void Manager::register_controller_callback(
    add_controller(new_controller_reference);
    RCLCPP_INFO(get_logger(), "Controller %s is online.", request->controller_action_name.c_str());
 
-   // Calculate the new controller's priority
-
    // Create the controller_update_task service server for the new controller reference
    new_controller_service = create_service<UpdateTask>
    (
@@ -156,18 +154,8 @@ void Manager::register_controller_callback(
    );
    new_controller_reference->set_controller_update_task(new_controller_service);
 
-   // Create the controller_complete_task action client
-        new_controller_action_client   = rclcpp::create_client<CompleteTask>(this, "complete_task/" + new_controller_reference->get_controller_name()); // ? What are these parameters?
-   auto complete_task_goal             = CompleteTask::Goal();
-        complete_task_goal->begin_task = complete_task_goal->BEGIN_TASK;
-   auto complete_task_callbacks        = rclcpp_action::Client<CompleteTask>::SendGoalOptions;
-
-   // Create callbacks for the action client
-   complete_task_callbacks.goal_response_callback   = [this]() { RCLCPP_INFO(get_logger(), "The %s complete task action received a goal.",                       new_controller_reference->get_controller_name()); };
-   complete_task_callbacks.cancel_response_callback = [this]() { RCLCPP_INFO(get_logger(), "The %s complete task action responded to a cancel results request.", new_controller_reference->get_controller_name()); };
-   complete_task_callbacks.feedback_callback        = [this]() { RCLCPP_INFO(get_logger(), "The %s complete task action delivered feedback.",                    new_controller_reference->get_controller_name()); };
-   complete_task_callbacks.result_callback          = [this]() { RCLCPP_INFO(get_logger(), "The %s complete task action published results.",                     new_controller_reference->get_controller_name()); };
-
+   // Create the controller_complete_task action client for the new controller reference
+   new_controller_action_client  = rclcpp_action::create_client<CompleteTask>(this, "complete_task/" + new_controller_reference->get_controller_name());
    new_controller_reference->set_controller_complete_task(new_controller_action_client);
 
    // Set the status of the registration in the service response for the new controller reference
