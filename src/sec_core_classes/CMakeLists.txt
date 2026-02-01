@@ -12,7 +12,6 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
-find_package(sec_interfaces REQUIRED)
 
 install(
   DIRECTORY include/
@@ -32,5 +31,7 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# find_package(rosidl_default_generators REQUIRED)
 
 ament_package()
