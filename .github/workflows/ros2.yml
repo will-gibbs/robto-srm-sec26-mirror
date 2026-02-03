@@ -23,7 +23,6 @@ jobs:
             build-essential \
             python3-rosdep \
             python3-colcon-common-extensions
-            python3-ament-package
 
           rosdep init || true
           rosdep update
