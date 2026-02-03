@@ -1,69 +1,38 @@
 name: ROS2 Colcon Build
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
-      - dev
+    branches: [main, dev]
   pull_request:
-    branches:
-      - main
-      - dev
-    types: [opened, synchronize, reopened]
+    branches: [main, dev]
+  workflow_dispatch:
 
 jobs:
   build:
-
     runs-on: ubuntu-24.04
+    container:
+      image: ros:jazzy
 
     steps:
-
-      # Install system packages
-      - name: Install ROS2 Jazzy Packages
-        run: |
-          sudo apt update && sudo apt install locales -y
-          sudo locale-gen en_US en_US.UTF-8
-          sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-          export LANG=en_US.UTF-8
-          
-          sudo apt install software-properties-common -y
-          sudo add-apt-repository universe
-          
-          sudo apt update && sudo apt install curl -y
-          export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
-          curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb"
-          sudo dpkg -i /tmp/ros2-apt-source.deb
-          
-          sudo apt update && sudo apt install ros-dev-tools -y
-          
-          sudo apt update -y
-          sudo apt install ros-jazzy-ros-base -y
-          
-          echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
-          source /opt/ros/jazzy/setup.bash
-          
-      # Setup a ROS2 workspace
-      - name: Setup Workspace
-        run: |
-          source /opt/ros/jazzy/setup.bash
-          mkdir -p robto-srm-sec26
-          cd robto-srm-sec26
-          colcon build
-          source install/local_setup.bash
-
-      # Setup branch checkout
       - uses: actions/checkout@v4
-        with:
-          path: robto-srm-sec26
 
-      # Install dependencies and build the workspace
-      - name: Configure CMake flags and build executables
+      - name: Install CI tools
         run: |
-          source /opt/ros/jazzy/setup.bash
-          sudo apt install python3-rosdep
-          sudo rosdep init
+          apt update
+          apt install -y \
+            build-essential \
+            python3-rosdep \
+            python3-colcon-common-extensions
+            python3-ament-package
+
+          rosdep init || true
           rosdep update
-          cd robto-srm-sec26
+
+      - name: Build workspace
+        shell: bash
+        run: |
+          set -e
+          source /opt/ros/jazzy/setup.bash
+
           rosdep install -i --from-path src --rosdistro jazzy -y
           colcon build
