@@ -12,6 +12,8 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
+find_package(sec_interfaces REQUIRED)
+# find_package(libgpiod-dev REQUIRED)
 
 install(
   DIRECTORY include/
