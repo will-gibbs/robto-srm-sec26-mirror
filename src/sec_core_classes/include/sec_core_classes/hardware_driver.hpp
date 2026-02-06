@@ -21,10 +21,13 @@ using namespace rclcpp;
 class HardwareDriver : public Node
 {
    gpiod::chip chip;
+
+   string driver_name;
 public:
    // Constructor, create a hardware driver
    HardwareDriver(const string name) : Node(name), chip("gpiochip0")
    {
+      driver_name = name;
       RCLCPP_INFO(get_logger(), "Creating a hardware driver: '%s'.", name.c_str());
       init_gpios();
    }
@@ -43,7 +46,7 @@ public:
       gpiod::line line = chip.get_line(pin_number);
 
       gpiod::line_request config;
-      config.consumer = "driver";
+      config.consumer = driver_name;
       switch (direction)
       {
          case (int)gpiod::line_request::DIRECTION_AS_IS:
