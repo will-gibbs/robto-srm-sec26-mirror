@@ -20,31 +20,46 @@ using namespace rclcpp;
 // Defintion of a general hardware driver node
 class HardwareDriver : public Node
 {
-   gpiod::chip chip;
+   gpiod::chip chip; // The chip to use for GPIO communication
 
-   string driver_name;
+   string driver_name; // The name of the driver node to be used for line requests
 public:
    // Constructor, create a hardware driver
    HardwareDriver(const string name) : Node(name), chip("gpiochip0")
    {
-      driver_name = name;
+      // Log node creation
       RCLCPP_INFO(get_logger(), "Creating a hardware driver: '%s'.", name.c_str());
-      init_gpios();
+      driver_name = name;
+      
+      // Initialize GPIO pins
+      if (init_gpios() == 0)
+      {
+        RCLCPP_INFO(get_logger(), "Successfully initialized GPIO pins.");
+      }
+      else
+      {
+         RCLCPP_ERROR(get_logger(), "Error: failed to initialize GPIO pins. Exiting.");
+         exit(1);
+      }
    }
 
    // Destructor, delete a hardware driver
    ~HardwareDriver()
    {
-      RCLCPP_INFO(get_logger(), "Deleting a hardware driver");
+      // Log node deletion
+      RCLCPP_INFO(get_logger(), "Deleting a hardware driver: '%s'.", driver_name.c_str());
    }
 
-   // Set the mode of a specific gpio pin
+   // Set the mode of a specific GPIO pin
    gpiod::line set_pin_mode(int pin_number, int direction)
    {
+      // Log pin initialization
       RCLCPP_INFO(get_logger(), "Setting pin mode: pin_number=%d, direction=%d", pin_number, direction);
 
+      // Get a line for the GPIO pin number
       gpiod::line line = chip.get_line(pin_number);
 
+      // Create the line request configuration
       gpiod::line_request config;
       config.consumer = driver_name;
       switch (direction)
@@ -63,18 +78,23 @@ public:
             break;
          default:
             RCLCPP_INFO(get_logger(), "Pin mode=UNKNOWN");
+            RCLCPP_ERROR(get_logger(), "Failed to initialize GPIO pin %d: unknown direction %d.",
+               pin_number, direction);
+            RCLCPP_ERROR(get_logger(), "Exiting.");
+            exit(1);
             break;
       }
 
+      // Request the line with the created configuration
       line.request(config, 0);
 
       return line;
    }
 
-   // Set the modes of all gpio pins the driver uses
+   // Set the modes of all GPIO pins the driver uses
    virtual int init_gpios()
    {
-      RCLCPP_INFO(get_logger(), "Initializing gpio pins...");
+      RCLCPP_INFO(get_logger(), "Initializing GPIO pins...");
 
       return 0;
    }
