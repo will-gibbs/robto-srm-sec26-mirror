@@ -11,10 +11,11 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(sec_core_classes REQUIRED)
 
 add_executable(driver_test src/driver_test.cpp)
-ament_target_dependencies(driver_test rclcpp sec_core_classes)
+ament_target_dependencies(driver_test rclcpp std_msgs sec_core_classes)
 
 target_link_libraries(driver_test gpiodcxx)
 
