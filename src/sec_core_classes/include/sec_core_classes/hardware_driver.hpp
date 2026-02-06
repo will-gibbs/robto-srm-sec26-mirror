@@ -20,10 +20,10 @@ using namespace rclcpp;
 // Defintion of a general hardware driver node
 class HardwareDriver : public Node
 {
-   
+   gpiod::chip chip;
 public:
    // Constructor, create a hardware driver
-   HardwareDriver(const string name) : Node(name)
+   HardwareDriver(const string name) : Node(name), chip("gpiochip0")
    {
       RCLCPP_INFO(get_logger(), "Creating a hardware driver: '%s'.", name.c_str());
       init_gpios();
@@ -55,6 +55,8 @@ public:
             RCLCPP_INFO(get_logger(), "Pin mode=UNKNOWN");
             break;
       }
+
+
 
       return 0;
    }

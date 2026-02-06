@@ -16,6 +16,8 @@ find_package(sec_core_classes REQUIRED)
 add_executable(driver_test src/driver_test.cpp)
 ament_target_dependencies(driver_test rclcpp sec_core_classes)
 
+target_link_libraries(driver_test gpiodcxx)
+
 install(TARGETS
   driver_test
   DESTINATION lib/${PROJECT_NAME}
