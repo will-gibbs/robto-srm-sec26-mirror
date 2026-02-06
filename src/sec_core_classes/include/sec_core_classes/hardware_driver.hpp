@@ -40,6 +40,22 @@ public:
    {
       RCLCPP_INFO(get_logger(), "Setting pin mode: pin_number=%d, direction=%d", pin_number, direction);
 
+      switch (direction)
+      {
+         case (int)gpiod::line_request::DIRECTION_AS_IS:
+            RCLCPP_INFO(get_logger(), "Pin mode=AS IS");
+            break;
+         case (int)gpiod::line_request::DIRECTION_INPUT:
+            RCLCPP_INFO(get_logger(), "Pin mode=INPUT");
+            break;
+         case (int)gpiod::line_request::DIRECTION_OUTPUT:
+            RCLCPP_INFO(get_logger(), "Pin mode=OUTPUT");
+            break;
+         default:
+            RCLCPP_INFO(get_logger(), "Pin mode=UNKNOWN");
+            break;
+      }
+
       return 0;
    }
 
