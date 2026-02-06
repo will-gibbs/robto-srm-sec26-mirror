@@ -36,36 +36,42 @@ public:
    }
 
    // Set the mode of a specific gpio pin
-   int set_pin_mode(int pin_number, int direction)
+   gpiod::line set_pin_mode(int pin_number, int direction)
    {
       RCLCPP_INFO(get_logger(), "Setting pin mode: pin_number=%d, direction=%d", pin_number, direction);
 
+      gpiod::line line = chip.get_line(pin_number);
+
+      gpiod::line_request config;
+      config.consumer = "driver";
       switch (direction)
       {
          case (int)gpiod::line_request::DIRECTION_AS_IS:
             RCLCPP_INFO(get_logger(), "Pin mode=AS IS");
+            config.request_type = gpiod::line_request::DIRECTION_AS_IS;
             break;
          case (int)gpiod::line_request::DIRECTION_INPUT:
             RCLCPP_INFO(get_logger(), "Pin mode=INPUT");
+            config.request_type = gpiod::line_request::DIRECTION_INPUT;
             break;
          case (int)gpiod::line_request::DIRECTION_OUTPUT:
             RCLCPP_INFO(get_logger(), "Pin mode=OUTPUT");
+            config.request_type = gpiod::line_request::DIRECTION_OUTPUT;
             break;
          default:
             RCLCPP_INFO(get_logger(), "Pin mode=UNKNOWN");
             break;
       }
 
+      line.request(config, 0);
 
-
-      return 0;
+      return line;
    }
 
    // Set the modes of all gpio pins the driver uses
    virtual int init_gpios()
    {
       RCLCPP_INFO(get_logger(), "Initializing gpio pins...");
-      set_pin_mode(17, (int)gpiod::line_request::DIRECTION_OUTPUT);
 
       return 0;
    }
