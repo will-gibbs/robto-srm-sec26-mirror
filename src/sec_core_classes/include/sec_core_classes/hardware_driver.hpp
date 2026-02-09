@@ -25,7 +25,7 @@ class HardwareDriver : public Node
    string driver_name; // The name of the driver node to be used for line requests
 public:
    // Constructor, create a hardware driver
-   HardwareDriver(const string name) : Node(name), chip("gpiochip0")
+   HardwareDriver(const string name) : Node(name), chip("gpiochip4")
    {
       // Log node creation
       RCLCPP_INFO(get_logger(), "Creating a hardware driver: '%s'.", name.c_str());

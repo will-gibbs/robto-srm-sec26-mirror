@@ -60,7 +60,7 @@ public:
    // Set the modes of all GPIO pins the driver uses
    int init_gpios() override
    {
-      line = set_pin_mode(4, OUTPUT);
+      line = set_pin_mode(17, OUTPUT);
 
       return 0;
    }
