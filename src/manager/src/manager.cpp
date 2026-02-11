@@ -63,12 +63,14 @@ using UpdateTask         = sec_interfaces::srv::UpdateTask;
 // Robto's central processing manager node
 class Manager : public Node
 {
-   int                                                        round_has_started = 0; // Indicates whether the round has begun
-   vector<shared_ptr<ControllerReference>>                    controllers;           // List of pointers to Robto's controllers
-   Subscription<builtin_interfaces::msg::Duration>::SharedPtr round_time_subscriber; // Subscription to the time remaining in the round
-   Service<RegisterController>::SharedPtr                     register_controller;   // Service for registering new controllers
-   Service<StartRound>::SharedPtr                             start_round;           // Service for starting Robto's mission
-   TimerBase::SharedPtr                                       timer;                 // Timer
+   int                                                        tick_count        = 0;  // The number of ticks that have occurred
+   int                                                        milestone         = -5; // Each significant lifespan milestone
+   int                                                        round_has_started = 0;  // Indicates whether the round has begun
+   vector<shared_ptr<ControllerReference>>                    controllers;            // List of pointers to Robto's controllers
+   Subscription<builtin_interfaces::msg::Duration>::SharedPtr round_time_subscriber;  // Subscription to the time remaining in the round
+   Service<RegisterController>::SharedPtr                     register_controller;    // Service for registering new controllers
+   Service<StartRound>::SharedPtr                             start_round;            // Service for starting Robto's mission
+   TimerBase::SharedPtr                                       timer;                  // Timer
 
    // Callback function for registering a new controller
    void register_controller_callback(
@@ -138,10 +140,10 @@ void Manager::register_controller_callback(
    Service<UpdateTask>::SharedPtr                 new_controller_service;                               // Update task service server for the new controller
    rclcpp_action::Client<CompleteTask>::SharedPtr new_controller_action_client;                         // Complete task action client for the new controller
 
-   // Create the controller_update_task service server for the new controller reference
+   // Create the UpdateTask service server for the new controller reference
    new_controller_service = create_service<UpdateTask>
    (
-      "/" + new_controller_reference->get_controller_name() + "/update_task",
+      new_controller_reference->get_controller_name() + "/update_task",
       [this, weak_controller_reference](const shared_ptr<UpdateTask::Request>  request,
                                               shared_ptr<UpdateTask::Response> response)
       { 
@@ -153,8 +155,8 @@ void Manager::register_controller_callback(
    );
    new_controller_reference->set_controller_update_task(new_controller_service);
 
-   // Create the controller_complete_task action client for the new controller reference
-   new_controller_action_client  = rclcpp_action::create_client<CompleteTask>(this, "/" + new_controller_reference->get_controller_name + "/complete_task"());
+   // Create the CompleteTask action client for the new controller reference
+   new_controller_action_client  = rclcpp_action::create_client<CompleteTask>(this, new_controller_reference->get_controller_name() + "/complete_task");
    new_controller_reference->set_controller_complete_task(new_controller_action_client);
    
    // Add the new controller to the list
@@ -216,7 +218,15 @@ void Manager::sort_controllers()
 //******************************************************************************
 void Manager::timer_callback()
 {
-   RCLCPP_INFO(get_logger(), "AAAAAAAAHHHHHHHH");
+   // Update the number of ticks
+   tick_count++;
+
+   // If the lifespan has reached a new milestone, log it
+   if (tick_count >= milestone * 10 + 50)
+   {
+      milestone += 5;
+      RCLCPP_INFO(get_logger(), "Manager lifetime: %ds", milestone);
+   }
 
    /*if (round_has_started)
    {
