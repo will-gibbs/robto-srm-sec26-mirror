@@ -55,9 +55,19 @@ class ControllerReference
    // Interface type aliases
    using UpdateTask = sec_interfaces::srv::UpdateTask;
    using CompleteTask = sec_interfaces::action::CompleteTask;
+   using GoalHandle = rclcpp_action::ClientGoalHandle<CompleteTask>;
+   using WrappedResult = rclcpp_action::Client<CompleteTask>::WrappedResult;
+
+   // Pointer to the manager node
+   Node *p_manager;
 
    // Action server for the complete task action on the controller
    rclcpp_action::Client<CompleteTask>::SharedPtr controller_complete_task;
+
+   // Goal handle (point of reference and control), feedback, and result of the action request
+   GoalHandle::SharedPtr                          current_goal;
+   CompleteTask::Feedback::ConstSharedPtr         current_feedback;
+   WrappedResult                                  current_result;
 
    // Service server for updating the task values of the controller
    Service<UpdateTask>::SharedPtr                 controller_update_task;
@@ -73,12 +83,54 @@ class ControllerReference
           
           task_likelihood_of_success; // Likelihood-of-success value of the controller's task
 
+   // Callback functions for the complete_task action call
+   void on_goal_response(GoalHandle::SharedPtr goal_handle)
+   {
+      if (goal_handle)
+      {
+         // Complete task goal was accepted; save a reference to the active goal
+         RCLCPP_INFO(p_manager->get_logger(), "Complete task goal for %s was accepted.", controller_name.c_str());
+         current_goal = goal_handle;
+      }
+      else
+      {
+         // Complete task goal was rejected
+         RCLCPP_INFO(p_manager->get_logger(), "Complete task goal for %s was rejected.", controller_name.c_str());
+      }
+   };
+   void on_feedback(CompleteTask::Feedback::ConstSharedPtr feedback)
+   {
+      current_feedback = feedback;
+      RCLCPP_INFO(p_manager->get_logger(), "Feedback received from the task %s.", controller_name.c_str());
+   };
+   void on_result(WrappedResult result)   
+   {
+      current_result = result;
+      switch (result.code)
+      {
+         case rclcpp_action::ResultCode::SUCCEEDED:
+            RCLCPP_INFO(p_manager->get_logger(), "The task %s has been successfully completed!", controller_name.c_str());
+            break;
+         case rclcpp_action::ResultCode::ABORTED:
+            RCLCPP_INFO(p_manager->get_logger(), "The task %s has been aborted.",                controller_name.c_str());
+            break;
+         case rclcpp_action::ResultCode::CANCELED:
+            RCLCPP_INFO(p_manager->get_logger(), "The task %s has been canceled.",               controller_name.c_str());
+            break;
+         case rclcpp_action::ResultCode::UNKNOWN:
+            RCLCPP_INFO(p_manager->get_logger(), "The task %s has finished with result UNKNOWN. Let the wise discern",               
+                                                                                               controller_name.c_str());
+            break;
+      }
+   };
+
 public:
    // Constructor, create a controller reference
-   ControllerReference(const string name)
+   ControllerReference(const string name, Node *p_manager)
    {
       // Initilize member variables
       controller_name            = name;
+      this->p_manager            = p_manager;
       task_priority              = 0.0f;
       task_point_value           = 0.0f;
       task_time_to_complete      = 0.0f;
@@ -136,6 +188,37 @@ public:
       {
          // Reply with a status code of RETRY
          response->request_status = response->RETRY;
+      }
+   }
+
+   // Send a task completion request to the controller
+   void request_complete_task()
+   {
+      CompleteTask::Goal                                   goal;    // Goal for the CompleteTask action client
+      rclcpp_action::Client<CompleteTask>::SendGoalOptions options; // Callbacks for responses from the action server
+
+      // Set the callback functions
+      options.goal_response_callback   = [this](      auto goal_handle) {on_goal_response(goal_handle);};
+      options.feedback_callback        = [this](      auto /*goal_handle*/, CompleteTask::Feedback::ConstSharedPtr feedback) 
+                                                                        {on_feedback     (feedback   );};
+      options.result_callback          = [this](const auto &result)     {on_result       (result     );};
+
+      // Set a goal and request the task to be completed
+      goal.begin_task = CompleteTask::Goal::BEGIN_TASK;
+      controller_complete_task->async_send_goal(goal, options);
+   }
+
+   // Cancel the controller task completion
+   void cancel_complete_task()
+   {
+      if (current_goal)
+      {
+         controller_complete_task->async_cancel_goal(current_goal);
+         RCLCPP_INFO(p_manager->get_logger(), "The %s task was canceled.", controller_name.c_str());
+      }
+      else
+      {
+         RCLCPP_INFO(p_manager->get_logger(), "Request to cancel the %s task, but it has not yet been started.", controller_name.c_str());
       }
    }
 };
