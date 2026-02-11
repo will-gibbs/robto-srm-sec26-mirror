@@ -154,7 +154,7 @@ void Manager::register_controller_callback(
    new_controller_reference->set_controller_update_task(new_controller_service);
 
    // Create the controller_complete_task action client for the new controller reference
-   new_controller_action_client  = rclcpp_action::create_client<CompleteTask>(this, "complete_task/" + new_controller_reference->get_controller_name());
+   new_controller_action_client  = rclcpp_action::create_client<CompleteTask>(this, "/" + new_controller_reference->get_controller_name + "complete_task/"());
    new_controller_reference->set_controller_complete_task(new_controller_action_client);
    
    // Add the new controller to the list
