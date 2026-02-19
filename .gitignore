@@ -9,3 +9,6 @@ log/
 # Vim Files
 *.*~
 *.swp
+
+# Python bytecode files
+*.pyc
