@@ -94,7 +94,7 @@ public:
 
         timer = create_wall_timer(timer_tick_rate, [this]() {return timer_callback();});
     };
-private:
+protected:
     rclcpp_action::Server<CompleteTask>::SharedPtr    complete_task;
     Client<RegisterController>::SharedPtr             register_controller;
     Client<UpdateTask>::SharedPtr                     update_task;

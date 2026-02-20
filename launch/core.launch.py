@@ -14,6 +14,11 @@ def generate_launch_description():
         name='manager',
         arguments=['--ros-args', '--log-level', 'manager:=ERROR']
     )
+    controller_test = Node(
+        package='controller_test',
+        executable='controller_test',
+        name='controller_test'
+    )
     timekeeper_node = Node(
         package='timekeeper',
         executable='timekeeper',
@@ -27,7 +32,20 @@ def generate_launch_description():
             OnProcessStart(
                 target_action=manager_node,
                 on_start=[
-                    LogInfo(msg='Manager started. Starting timekeeper...'),
+                    LogInfo(msg='Manager started. Starting controller test...'),
+                    TimerAction(
+                        period=5.0,
+                        actions=[controller_test]
+                    )
+                ]
+            )
+        ),
+
+        RegisterEventHandler(
+            OnProcessStart(
+                target_action=controller_test,
+                on_start=[
+                    LogInfo(msg='Controller test started. Starting timekeeper...'),
                     TimerAction(
                         period=5.0,
                         actions=[timekeeper_node]
