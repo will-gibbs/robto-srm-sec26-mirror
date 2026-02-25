@@ -2,32 +2,29 @@
 //* Project: Robto SRM, IEEE SoutheastCon 2026                                 *
 //* Package: I2C Multiplexer Driver                                            *
 //* Name:    i2c_multiplexer_driver.cpp                                        *
+//* Author:  Christian Phan                                                    *
 //******************************************************************************
 
 //******************************************************************************
-//* This node interfaces with the PCA9546 4-channel I2C multiplexer and all   *
-//* I2C components connected to it. Because all components share the same I2C  *
-//* bus through the multiplexer, this single node handles all communication    *
-//* so that channel switching can be properly sequenced.                       *
-//*                                                                            *
-//* To communicate with a component, this node:                               *
-//*   1. Writes the channel select byte to the multiplexer (0x70)             *
-//*   2. Communicates with the component on the selected channel               *
-//*   3. Resets the multiplexer (writes 0x00) when done                       *
+//* Controls and interprets the data from the devices to the PI.               *
+//*   1. Write the channel select byte to the multiplexer (0x70)               *
+//*   2. Communicate with the component on the selected channel                *
+//*   3. Reset the multiplexer (writes 0x00) when done                         *
 //*                                                                            *
 //* Components:                                                                *
-//*   Channel TBD - TCS34725  Color Sensor      (addr 0x29)                   *
-//*   Channel TBD - VL53L5CX  Distance Sensor   (addr 0x29)                   *
-//*   Channel TBD - SSD1306   OLED Display      (addr 0x3C or 0x3D)           *
+//*   Channel TBD - TCS34725  Color Sensor      (addr 0x29)                    *
+//*   Channel TBD - VL53L5CX  Distance Sensor   (addr 0x29)                    *
+//*   Channel TBD - SSD1306   OLED Display      (addr 0x3C or 0x3D)            *
 //*                                                                            *
 //* Publishers:                                                                *
 //*   - i2c_multiplexer/color_sensor    (std_msgs/msg/Int32)                   *
-//*     Duck confidence score: R + (G/2) - B. Higher = more yellow/orange.    *
+//*     Duck confidence score: R + (G/2) - B. Higher = more yellow/orange      *
 //*   - i2c_multiplexer/distance_sensor (std_msgs/msg/Float32MultiArray)       *
-//*     Perimeter distances in mm: [left, center, right] from VL53L5CX.       *
+//*     Perimeter distances in mm: [Array of 64 for each degree] from VL53L5CX *
 //*                                                                            *
 //* Subscriptions:                                                             *
 //*   - i2c_multiplexer/display         (std_msgs/msg/String)                  *
+//*.     not really sure what i need to display on the screen tbh.             *
 //******************************************************************************
 
 // C++-specific packages
@@ -59,7 +56,7 @@ using namespace std;
 using namespace rclcpp;
 using namespace std::chrono_literals;
 
-// I2C bus device path on Raspberry Pi 5 (GPIO 2/3 = I2C1)
+// I2C bus device path on Raspberry Pi 5
 #define I2C_BUS "/dev/i2c-1"
 
 // PCA9546 Multiplexer I2C address (Primary Sensor, Motor & GPIO Info.pdf)
@@ -77,7 +74,7 @@ using namespace std::chrono_literals;
 #define DISTANCE_SENSOR_ADDR 0x52  // VL53L5CX default I2C address (UM2884 p4, s2.3)
 #define DISPLAY_ADDR         0x3C  // SSD1306 OLED (may be 0x3D depending on hardware config)
 
-// TODO: Assign correct channels once hardware is confirmed
+// Assign correct channels ASK ABOUT IN THE MEETING TN
 #define COLOR_SENSOR_CHANNEL    MUX_CHANNEL_0
 #define DISTANCE_SENSOR_CHANNEL MUX_CHANNEL_1
 #define DISPLAY_CHANNEL         MUX_CHANNEL_3
@@ -102,7 +99,7 @@ using namespace std::chrono_literals;
 #define SSD1306_CMD_MEM_MODE      0x20  // Set memory addressing mode (SSD1306.pdf p34, s10.1.3)
 #define SSD1306_CMD_HORIZ_MODE    0x00  // Horizontal addressing mode (SSD1306.pdf p34, s10.1.3)
 
-// VL53L5CX target status value indicating a valid measurement (VL53L5CX ULD API vl53l5cx_api.h)
+// VL53L5CX range valid (UM2884 page 14, Table 4)
 #define VL53L5CX_STATUS_VALID 5
 
 // Poll rate
@@ -113,8 +110,7 @@ using namespace std::chrono_literals;
 //******************************************************************************
 class I2CMultiplexerDriver : public Node
 {
-   // I2C device handle (opened once, used throughout node lifetime)
-   struct i2cd *i2c_dev = nullptr;
+   struct i2cd *i2c_dev = nullptr; // I2C device handle (Bus)
 
    // VL53L5CX sensor configuration (persists between ticks - init once, read each tick)
    VL53L5CX_Configuration distance_dev;
@@ -388,7 +384,7 @@ bool I2CMultiplexerDriver::init_display()
 
 //******************************************************************************
 //*        Read RGBC data from TCS34725, compute duck confidence score,        *
-//*        and publish it. Score = R + (G/2) - B.                             *
+//*        and publish it. Score = R + (G/2) - B.                              *
 //*        Higher score = more yellow/orange = duck more likely nearby.        *
 //******************************************************************************
 void I2CMultiplexerDriver::read_color_sensor()
