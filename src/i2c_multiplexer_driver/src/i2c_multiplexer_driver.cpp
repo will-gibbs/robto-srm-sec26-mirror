@@ -102,15 +102,6 @@ using namespace std::chrono_literals;
 #define SSD1306_CMD_MEM_MODE      0x20  // Set memory addressing mode (SSD1306.pdf p34, s10.1.3)
 #define SSD1306_CMD_HORIZ_MODE    0x00  // Horizontal addressing mode (SSD1306.pdf p34, s10.1.3)
 
-// VL53L5CX 8x8 grid zone column ranges (8 columns split into 3 navigation zones)
-// Row-major order: zone index = row * 8 + col (VL53L5CX ULD API vl53l5cx_api.h)
-#define ZONE_LEFT_START   0
-#define ZONE_LEFT_END     2
-#define ZONE_CENTER_START 3
-#define ZONE_CENTER_END   5
-#define ZONE_RIGHT_START  6
-#define ZONE_RIGHT_END    7
-
 // VL53L5CX target status value indicating a valid measurement (VL53L5CX ULD API vl53l5cx_api.h)
 #define VL53L5CX_STATUS_VALID 5
 
@@ -447,27 +438,19 @@ void I2CMultiplexerDriver::read_color_sensor()
 }
 
 //******************************************************************************
-//*     Read distances from VL53L5CX, split into left/center/right zones,     *
-//*     and publish as [left, center, right] in mm.                           *
+//*     Read distances from VL53L5CX and publish all 64 zone distances in mm. *
 //*                                                                            *
-//*     The 8x8 grid is 64 zones in row-major order (row 0 = zones 0-7).      *
-//*     Each zone reports the minimum valid distance within its column range.  *
+//*     The 8x8 grid is published in row-major order (row 0 = zones 0-7).     *
+//*     Invalid zones (bad target status) are published as -1.0.              *
+//*     Zone index = row * 8 + col (VL53L5CX ULD API vl53l5cx_api.h)         *
 //******************************************************************************
 void I2CMultiplexerDriver::read_distance_sensor()
 {
-   int      col        = 0;
-   float    dist_left  = -1.0f;
-   float    dist_center= -1.0f;
-   float    dist_right = -1.0f;
-   uint8_t  is_ready   = 0;
-   auto     message    = std_msgs::msg::Float32MultiArray();
-   int      min_left   = INT_MAX;
-   int      min_center = INT_MAX;
-   int      min_right  = INT_MAX;
-   int      row        = 0;
-   bool     success    = distance_dev_ready && select_channel(DISTANCE_SENSOR_CHANNEL);
-   uint8_t  status     = 0;
-   int      zone       = 0;
+   uint8_t  is_ready = 0;
+   auto     message  = std_msgs::msg::Float32MultiArray();
+   bool     success  = distance_dev_ready && select_channel(DISTANCE_SENSOR_CHANNEL);
+   uint8_t  status   = 0;
+   int      zone     = 0;
    VL53L5CX_ResultsData results;
 
    if (success)
@@ -488,42 +471,18 @@ void I2CMultiplexerDriver::read_distance_sensor()
 
    if (success)
    {
-      // Scan all 64 zones, find minimum valid distance per column zone
-      // Zone index = row * 8 + col (VL53L5CX ULD API vl53l5cx_api.h)
-      for (row = 0; row < 8; row++)
+      // Publish all 64 zone distances - invalid zones published as -1.0
+      // target_status == 5 means valid (UM2884 p14, Table 4)
+      message.data.resize(VL53L5CX_RESOLUTION_8X8);
+
+      for (zone = 0; zone < VL53L5CX_RESOLUTION_8X8; zone++)
       {
-         for (col = 0; col < 8; col++)
-         {
-            zone = row * 8 + col;
-
-            // Only use zones with valid target status (VL53L5CX ULD API vl53l5cx_api.h)
-            if (results.target_status[zone * VL53L5CX_NB_TARGET_PER_ZONE] != VL53L5CX_STATUS_VALID)
-               continue;
-
-            if (col >= ZONE_LEFT_START && col <= ZONE_LEFT_END)
-            {
-               if (results.distance_mm[zone * VL53L5CX_NB_TARGET_PER_ZONE] < min_left)
-                  min_left = results.distance_mm[zone * VL53L5CX_NB_TARGET_PER_ZONE];
-            }
-            else if (col >= ZONE_CENTER_START && col <= ZONE_CENTER_END)
-            {
-               if (results.distance_mm[zone * VL53L5CX_NB_TARGET_PER_ZONE] < min_center)
-                  min_center = results.distance_mm[zone * VL53L5CX_NB_TARGET_PER_ZONE];
-            }
-            else if (col >= ZONE_RIGHT_START && col <= ZONE_RIGHT_END)
-            {
-               if (results.distance_mm[zone * VL53L5CX_NB_TARGET_PER_ZONE] < min_right)
-                  min_right = results.distance_mm[zone * VL53L5CX_NB_TARGET_PER_ZONE];
-            }
-         }
+         if (results.target_status[zone * VL53L5CX_NB_TARGET_PER_ZONE] == VL53L5CX_STATUS_VALID)
+            message.data[zone] = (float)results.distance_mm[zone * VL53L5CX_NB_TARGET_PER_ZONE];
+         else
+            message.data[zone] = -1.0f;
       }
 
-      // Convert to float, keep -1.0 if no valid reading in zone
-      if (min_left   != INT_MAX) dist_left   = (float)min_left;
-      if (min_center != INT_MAX) dist_center = (float)min_center;
-      if (min_right  != INT_MAX) dist_right  = (float)min_right;
-
-      message.data = {dist_left, dist_center, dist_right};
       distance_sensor_publisher->publish(message);
    }
 
