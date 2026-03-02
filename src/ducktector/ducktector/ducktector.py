@@ -9,6 +9,12 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from rclpy.qos import qos_profile_sensor_data
 
+MIN_HUE        = 20  # Minimum hue of mask color range
+MAX_HUE        = 30  # Maximum hue of mask color range
+MIN_SATURATION = 100 # Mininum saturation of mask color range
+MAX_SATURATION = 255 # Maximum saturation of mask color range
+MIN_BRIGHTNESS = 100 # Minimum brightness of mask color range
+MAX_BRIGHTNESS = 255 # Maximum brightness of mask color range
 
 class Ducktector(Node):
 
@@ -42,8 +48,8 @@ class Ducktector(Node):
     
             # Define the bounds of what is considered "yellow"
             # first # is hue, second # is saturation, third # is value (or brightness)
-            lower_yellow = np.array([20, 100, 100])
-            upper_yellow = np.array([30, 255, 255])
+            lower_yellow = np.array([MIN_HUE, MIN_SATURATION, MIN_BRIGHTNESS])
+            upper_yellow = np.array([MAX_HUE, MAX_SATURATION, MAX_BRIGHTNESS])
 
             # Create a mask to separate the yellow from the rest of the image
             mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
