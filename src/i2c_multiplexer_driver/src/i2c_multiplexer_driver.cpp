@@ -13,25 +13,27 @@
 //*                                                                            *
 //* Components:                                                                *
 //*   Channel TBD - TCS34725  Color Sensor      (addr 0x29)                    *
-//*   Channel TBD - VL53L5CX  Distance Sensor   (addr 0x29)                    *
+//*   Channel TBD - VL53L5CX  Distance Sensor   (addr 0x52)                    *
 //*   Channel TBD - SSD1306   OLED Display      (addr 0x3C or 0x3D)            *
 //*                                                                            *
 //* Publishers:                                                                *
 //*   - i2c_multiplexer/color_sensor    (std_msgs/msg/Int32)                   *
-//*     Duck confidence score: R + (G/2) - B. Higher = more yellow/orange      *
+//*     Antenna LED color reading from TCS34725. Used to identify which        *
+//*     color (red, blue, green, purple) each antenna's dish LED is showing.   *
+//*     Score = R + (G/2) - B. Higher = more yellow/orange.                    *
 //*   - i2c_multiplexer/distance_sensor (std_msgs/msg/Float32MultiArray)       *
-//*     Perimeter distances in mm: [Array of 64 for each degree] from VL53L5CX *
+//*     64 zone distances in mm from VL53L5CX (8x8 grid, row-major order).     *
+//*     Used for obstacle avoidance. Invalid zones published as -1.0.          *
 //*                                                                            *
 //* Subscriptions:                                                             *
 //*   - i2c_multiplexer/display         (std_msgs/msg/String)                  *
-//*.     not really sure what i need to display on the screen tbh.             *
+//*     2-character string to show on OLED: antenna number + color letter      *
 //******************************************************************************
 
 // C++-specific packages
 #include <memory>
 #include <chrono>
 #include <algorithm>
-#include <climits>
 
 // ROS2-specific packages
 #include "rclcpp/rclcpp.hpp"
@@ -59,22 +61,23 @@ using namespace std::chrono_literals;
 // I2C bus device path on Raspberry Pi 5
 #define I2C_BUS "/dev/i2c-1"
 
-// PCA9546 Multiplexer I2C address (Primary Sensor, Motor & GPIO Info.pdf)
+// PCA9546 Multiplexer I2C address (Adafruit PCA9546 guide p5)
 #define MUX_ADDR 0x70
 
-// Multiplexer channel select bytes (PCA9546 datasheet)
+// Multiplexer channel select bytes - write (1 << channel) to select, 0x00 to deselect all
+// (Adafruit PCA9546 guide p4, p16 I2C Scanner Example)
 #define MUX_CHANNEL_0  0x01
 #define MUX_CHANNEL_1  0x02
 #define MUX_CHANNEL_2  0x04
 #define MUX_CHANNEL_3  0x08
 #define MUX_RESET      0x00
 
-// Component I2C addresses (Primary Sensor, Motor & GPIO Info.pdf)
+// Component I2C addresses
 #define COLOR_SENSOR_ADDR    0x29  // TCS34725 (TCS34725.pdf p3, Available Options table)
 #define DISTANCE_SENSOR_ADDR 0x52  // VL53L5CX default I2C address (UM2884 p4, s2.3)
 #define DISPLAY_ADDR         0x3C  // SSD1306 OLED (may be 0x3D depending on hardware config)
 
-// Assign correct channels ASK ABOUT IN THE MEETING TN
+// TODO: Confirm channel assignments with team
 #define COLOR_SENSOR_CHANNEL    MUX_CHANNEL_0
 #define DISTANCE_SENSOR_CHANNEL MUX_CHANNEL_1
 #define DISPLAY_CHANNEL         MUX_CHANNEL_3
@@ -99,7 +102,7 @@ using namespace std::chrono_literals;
 #define SSD1306_CMD_MEM_MODE      0x20  // Set memory addressing mode (SSD1306.pdf p34, s10.1.3)
 #define SSD1306_CMD_HORIZ_MODE    0x00  // Horizontal addressing mode (SSD1306.pdf p34, s10.1.3)
 
-// VL53L5CX range valid (UM2884 page 14, Table 4)
+// VL53L5CX target status value indicating a valid measurement (UM2884 p14, Table 4)
 #define VL53L5CX_STATUS_VALID 5
 
 // Poll rate
@@ -117,11 +120,11 @@ class I2CMultiplexerDriver : public Node
    bool                   distance_dev_ready = false; // true after successful init
 
    // Publishers
-   Publisher<std_msgs::msg::Int32>::SharedPtr             color_sensor_publisher;    // Duck confidence score from TCS34725
-   Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr distance_sensor_publisher; // [left, center, right] mm from VL53L5CX
+   Publisher<std_msgs::msg::Int32>::SharedPtr             color_sensor_publisher;    // Antenna LED color score from TCS34725
+   Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr distance_sensor_publisher; // 64 zone distances in mm from VL53L5CX
 
    // Subscription
-   Subscription<std_msgs::msg::String>::SharedPtr display_subscriber; // Text/state to show on OLED
+   Subscription<std_msgs::msg::String>::SharedPtr display_subscriber; // 2-char string to show on OLED e.g. "1R", "2B"
 
    // Timer
    TimerBase::SharedPtr timer;
@@ -246,7 +249,7 @@ void I2CMultiplexerDriver::reset_mux()
 }
 
 //******************************************************************************
-//*                     Initialize the TCS34725 color sensor                  *
+//*                     Initialize the TCS34725 color sensor                   *
 //******************************************************************************
 bool I2CMultiplexerDriver::init_color_sensor()
 {
@@ -292,8 +295,8 @@ bool I2CMultiplexerDriver::init_color_sensor()
 }
 
 //******************************************************************************
-//*   Initialize the VL53L5CX distance sensor and start continuous ranging.   *
-//*   This is called once at startup. The sensor stays ranging between ticks.  *
+//*   Initialize the VL53L5CX distance sensor and start continuous ranging     *
+//*   This is called once at startup. The sensor stays ranging between ticks   *
 //******************************************************************************
 bool I2CMultiplexerDriver::init_distance_sensor()
 {
@@ -383,16 +386,18 @@ bool I2CMultiplexerDriver::init_display()
 }
 
 //******************************************************************************
-//*        Read RGBC data from TCS34725, compute duck confidence score,        *
-//*        and publish it. Score = R + (G/2) - B.                              *
-//*        Higher score = more yellow/orange = duck more likely nearby.        *
+//*        Read RGBC data from TCS34725 and publish the raw color values.      *
+//*        Used by the navigation node to identify each antenna's LED color    *
+//*        (red, blue, green, purple) when the arm positions the sensor        *
+//*        over the antenna dish.                                              *
+//*        Score = R + (G/2) - B. Published as Int32.                          *
 //******************************************************************************
 void I2CMultiplexerDriver::read_color_sensor()
 {
-   uint8_t  b          = 0;
+   uint16_t b          = 0;
    uint8_t  data_reg   = TCS34725_COMMAND_BIT | 0x10 | TCS34725_CDATAL; // Auto-increment mode (TCS34725.pdf p14, Table 4)
-   uint8_t  g          = 0;
-   uint8_t  r          = 0;
+   uint16_t g          = 0;
+   uint16_t r          = 0;
    uint8_t  raw[8]     = {0};
    int32_t  score      = 0;
    uint8_t  status     = 0;
@@ -422,7 +427,8 @@ void I2CMultiplexerDriver::read_color_sensor()
       g = (uint16_t)(raw[4] | (raw[5] << 8));
       b = (uint16_t)(raw[6] | (raw[7] << 8));
 
-      // Duck confidence score: yellow = high R + high G + low B, orange = high R + medium G + low B
+      // Color score used to identify antenna LED color (red, blue, green, purple)
+      // Higher R = red, higher G = green, higher B = blue/purple, high R+G = yellow (not used here)
       score = (int32_t)r + (int32_t)(g / 2) - (int32_t)b;
 
       auto message = std_msgs::msg::Int32();
@@ -434,11 +440,11 @@ void I2CMultiplexerDriver::read_color_sensor()
 }
 
 //******************************************************************************
-//*     Read distances from VL53L5CX and publish all 64 zone distances in mm. *
+//*     Read distances from VL53L5CX and publish all 64 zone distances in mm.  *
 //*                                                                            *
-//*     The 8x8 grid is published in row-major order (row 0 = zones 0-7).     *
-//*     Invalid zones (bad target status) are published as -1.0.              *
-//*     Zone index = row * 8 + col (VL53L5CX ULD API vl53l5cx_api.h)         *
+//*     The 8x8 grid is published in row-major order (row 0 = zones 0-7).      *
+//*     Invalid zones (bad target status) are published as -1.0.               *
+//*     Zone index = row * 8 + col (VL53L5CX ULD API vl53l5cx_api.h)           *
 //******************************************************************************
 void I2CMultiplexerDriver::read_distance_sensor()
 {
@@ -486,7 +492,7 @@ void I2CMultiplexerDriver::read_distance_sensor()
 }
 
 //******************************************************************************
-//*              Write a string to the SSD1306 OLED display                   *
+//*             2-character string display (SSD1306 OLED display)              *
 //******************************************************************************
 void I2CMultiplexerDriver::write_display(const std::string &text)
 {
