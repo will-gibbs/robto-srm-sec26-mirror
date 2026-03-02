@@ -61,6 +61,7 @@ class Ducktector(Node):
 
             position_msg = String()
 
+            # TO DO: change this to a formula where the m00 area is used to calculate the distance from the camera
             if M["m00"] > 0:
                 cx = int(M["m10"] / M["m00"])
 
