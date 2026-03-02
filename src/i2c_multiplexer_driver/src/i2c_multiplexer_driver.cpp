@@ -394,14 +394,14 @@ bool I2CMultiplexerDriver::init_display()
 //******************************************************************************
 void I2CMultiplexerDriver::read_color_sensor()
 {
-   uint16_t b          = 0;
-   uint8_t  data_reg   = TCS34725_COMMAND_BIT | 0x10 | TCS34725_CDATAL; // Auto-increment mode (TCS34725.pdf p14, Table 4)
-   uint16_t g          = 0;
-   uint16_t r          = 0;
+   uint16_t blue       = 0;
+   uint16_t green      = 0;
+   uint16_t red        = 0;
    uint8_t  raw[8]     = {0};
-   int32_t  score      = 0;
+   uint8_t  data_reg   = TCS34725_COMMAND_BIT | 0x10 | TCS34725_CDATAL; // Auto-increment mode (TCS34725.pdf p14, Table 4)
    uint8_t  status     = 0;
    uint8_t  status_reg = TCS34725_COMMAND_BIT | TCS34725_STATUS;
+   int32_t  score      = 0;
    bool     success    = (i2c_dev != nullptr) && select_channel(COLOR_SENSOR_CHANNEL);
 
    if (success)
@@ -423,9 +423,9 @@ void I2CMultiplexerDriver::read_color_sensor()
    if (success)
    {
       // Combine low and high bytes into 16-bit values (TCS34725.pdf p19, Table 14)
-      r = (uint16_t)(raw[2] | (raw[3] << 8));
-      g = (uint16_t)(raw[4] | (raw[5] << 8));
-      b = (uint16_t)(raw[6] | (raw[7] << 8));
+      red   = (uint16_t)(raw[2] | (raw[3] << 8));
+      green = (uint16_t)(raw[4] | (raw[5] << 8));
+      blue  = (uint16_t)(raw[6] | (raw[7] << 8));
 
       // Color score used to identify antenna LED color (red, blue, green, purple)
       // Higher R = red, higher G = green, higher B = blue/purple, high R+G = yellow (not used here)
@@ -440,11 +440,7 @@ void I2CMultiplexerDriver::read_color_sensor()
 }
 
 //******************************************************************************
-//*     Read distances from VL53L5CX and publish all 64 zone distances in mm.  *
-//*                                                                            *
-//*     The 8x8 grid is published in row-major order (row 0 = zones 0-7).      *
-//*     Invalid zones (bad target status) are published as -1.0.               *
-//*     Zone index = row * 8 + col (VL53L5CX ULD API vl53l5cx_api.h)           *
+//*       Read distances and publish an array of 64 zone distances in mm       *
 //******************************************************************************
 void I2CMultiplexerDriver::read_distance_sensor()
 {
@@ -537,5 +533,6 @@ int main(int argc, char **argv)
    RCLCPP_INFO(get_logger("rclcpp"), "Starting I2C Multiplexer Driver...");
    spin(make_shared<I2CMultiplexerDriver>());
    shutdown();
+   
    return 0;
 }
