@@ -12,7 +12,7 @@ def generate_launch_description():
         package='manager',
         executable='manager',
         name='manager',
-        arguments=['--ros-args', '--log-level', 'manager:=ERROR']
+        # arguments=['--ros-args', '--log-level', 'manager:=ERROR']
     )
     controller_test = Node(
         package='controller_test',
@@ -22,7 +22,8 @@ def generate_launch_description():
     timekeeper_node = Node(
         package='timekeeper',
         executable='timekeeper',
-        name='timekeeper'
+        name='timekeeper',
+        arguments=['--ros-args', '--log-level', 'timekeeper:=ERROR']
     )
 
     return LaunchDescription([
@@ -33,6 +34,7 @@ def generate_launch_description():
                 target_action=manager_node,
                 on_start=[
                     LogInfo(msg='Manager started. Starting controller test...'),
+                    LogInfo(msg='Test Message'),
                     TimerAction(
                         period=5.0,
                         actions=[controller_test]
