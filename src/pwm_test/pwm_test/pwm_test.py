@@ -9,7 +9,12 @@ class PWMTest(Node):
       super().__init__("pwm_test")
       self.counter = 0
       self.publisher = self.create_publisher(Int8, "test_topic", 10)
+      self.subscriber = self.create_subscription(
+         Int8,"pwm_control", self.pwm_listener_callback, 10)
       self.timer = self.create_timer(1, self.timer_callback)
+
+   def pwm_listener_callback(self, pwm_msg):
+      self.get_logger().info(f"Received: {pwm_msg.data}.")
 
    def timer_callback(self):
       msg = Int8()
