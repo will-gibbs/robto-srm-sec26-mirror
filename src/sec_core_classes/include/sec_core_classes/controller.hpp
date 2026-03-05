@@ -95,12 +95,15 @@ public:
             [this](const auto & goal_handle) {handle_accepted(goal_handle);});
         
         update_task = create_client<UpdateTask>(name + "/update_task");
+        register_controller = create_client<RegisterController>("register_controller");
 
         timer = create_wall_timer(timer_tick_rate, [this]() {return timer_callback();});
+
+        register_with_manager();
     };
 
     // Register the controller with the manager by creating a RegisterController service client
-    void register()
+    void register_with_manager()
     {
         // Create a service request
         auto request = std::make_shared<RegisterController::Request>();
