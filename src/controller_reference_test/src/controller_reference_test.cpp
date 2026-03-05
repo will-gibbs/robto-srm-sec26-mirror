@@ -48,7 +48,7 @@ public:
 
    // Constructor, create a controller reference test node
    ControllerReferenceTest() : Node("controller_reference_test"),
-      controller_1("controller_1"), controller_2("controller_2")
+      controller_1("controller_1", this), controller_2("controller_2", this)
    {
       RCLCPP_INFO(get_logger(), "Creating a controller reference test node...");
 
