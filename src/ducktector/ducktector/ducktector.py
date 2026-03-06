@@ -9,12 +9,14 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from rclpy.qos import qos_profile_sensor_data
 
-MIN_HUE        = 20  # Minimum hue of mask color range
-MAX_HUE        = 30  # Maximum hue of mask color range
-MIN_SATURATION = 100 # Mininum saturation of mask color range
-MAX_SATURATION = 255 # Maximum saturation of mask color range
-MIN_BRIGHTNESS = 100 # Minimum brightness of mask color range
-MAX_BRIGHTNESS = 255 # Maximum brightness of mask color range
+MIN_HUE           = 20  # Minimum hue of mask color range
+MAX_HUE           = 30  # Maximum hue of mask color range
+MIN_SATURATION    = 100 # Mininum saturation of mask color range
+MAX_SATURATION    = 255 # Maximum saturation of mask color range
+MIN_BRIGHTNESS    = 100 # Minimum brightness of mask color range
+MAX_BRIGHTNESS    = 255 # Maximum brightness of mask color range
+FOCAL_LENGTH      = 1075
+                        # Perceived focal length 
 
 class Ducktector(Node):
 
@@ -61,22 +63,30 @@ class Ducktector(Node):
 
             position_msg = String()
 
-            # TO DO: change this to a formula where the m00 area is used to calculate the distance from the camera
+            # TO DO: 
             if M["m00"] > 0:
                 cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
 
+                contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                largest_countour = max(contours, key=cv2.contourArea)
+                x, y, w, h = cv2.boundingRect(largest_countour)
+
+                # Estimate the distance from the camera in inches
+                distance = str(FOCAL_LENGTH / w)
+      
                 # Determine which side the duck is on
                 if cx < width / 3:
-                    position = "LEFT"
+                    position = "LEFT: " + distance
                 elif cx < 2 * width / 3:
-                    position = "CENTER"
+                    position = "CENTER: " + distance
                 else:
-                    position = "RIGHT"
+                    position = "RIGHT: " + distance
 
                 position_msg.data = position
 
                 # Optional: draw centroid
-                cv2.circle(cv_image, (cx, height // 2), 10, (0, 0, 255), -1)
+                # cv2.circle(cv_image, (cx, cy), 10, (0, 0, 255), -1)
 
             else:
                 position_msg.data = "NO DUCK"
@@ -88,13 +98,6 @@ class Ducktector(Node):
             cv2.imshow("Mask", mask)
             cv2.imshow("Camera Feed", cv_image)
             cv2.waitKey(1)
-            
-            # Apply the mask to the original image
-            #detected_output = cv2.bitwise_and(cv_image, cv_image, mask=mask)
-
-            # Display the new image
-            #cv2.imshow("Camera Feed", detected_output)
-            #cv2.waitKey(1)
 
         except CvBridgeError as e:
             self.get_logger().error(f"CV Bridge error: {e}")
