@@ -36,6 +36,9 @@ using namespace std::placeholders;
 using namespace rclcpp;
 using namespace sec_interfaces::srv;
 
+// Symbolic constants
+#define RETRY_INTERVAL 1s
+
 //******************************************************************************
 //*                              Class Definition                              *
 //******************************************************************************
@@ -45,6 +48,7 @@ class Controller : public Node
 public:
     using CompleteTask = sec_interfaces::action::CompleteTask;
     using GoalHandleCompleteTask = rclcpp_action::ServerGoalHandle<CompleteTask>;
+    using RegisterController = sec_interfaces::srv::RegisterController;
 
     // Receives the objective to complete
     virtual rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID & uuid, shared_ptr<const CompleteTask::Goal> goal)
@@ -91,16 +95,49 @@ public:
             [this](const auto & goal_handle) {handle_accepted(goal_handle);});
         
         update_task = create_client<UpdateTask>(name + "/update_task");
+        register_controller = create_client<RegisterController>("register_controller");
 
         timer = create_wall_timer(timer_tick_rate, [this]() {return timer_callback();});
+
+        register_with_manager();
     };
+
+    // Register the controller with the manager by creating a RegisterController service client
+    void register_with_manager()
+    {
+        // Create a service request
+        auto request = std::make_shared<RegisterController::Request>();
+        request->controller_action_name = controller_name; // ? Assumption: The controller name is the controller action name
+
+        // Try to register
+        if (!register_controller->wait_for_service(RETRY_INTERVAL))
+        {
+            RCLCPP_WARN(get_logger(), "RegisterController service not available for %s.", this->controller_name.c_str());
+            return;
+        }
+
+        // Callback function for RegisterController client request
+        register_controller->async_send_request
+        (
+            request,
+            [this](Client<RegisterController>::SharedFuture future)
+            {
+                auto result = future.get();
+                if (result->registration_status_code == RegisterController::Response::OK)
+                {
+                    RCLCPP_INFO(get_logger(), "The %s controller registered successfully.", controller_name.c_str());
+                }
+            }
+        );
+        return;
+    }
 private:
-    rclcpp_action::Server<CompleteTask>::SharedPtr    complete_task;
-    Client<RegisterController>::SharedPtr             register_controller;
-    Client<UpdateTask>::SharedPtr                     update_task;
-    string                                            controller_name;
-    TimerBase::SharedPtr                              timer;
-    std::chrono::milliseconds                         timer_tick_rate;
+    rclcpp_action::Server<CompleteTask>::SharedPtr complete_task;
+    Client<RegisterController>::SharedPtr          register_controller;
+    Client<UpdateTask>::SharedPtr                  update_task;
+    string                                         controller_name;
+    TimerBase::SharedPtr                           timer;
+    std::chrono::milliseconds                      timer_tick_rate;
 
     // Loops to perform a task
     virtual void timer_callback() {};
