@@ -1,0 +1,14 @@
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      plugins: ["obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: oak_scan
+        oak_scan:
+          topic: /oak/points  # Match the driver topic
+          sensor_frame: oak_rgb_camera_optical_frame
+          data_type: "PointCloud2"
+          marking: True
+          clearing: True
