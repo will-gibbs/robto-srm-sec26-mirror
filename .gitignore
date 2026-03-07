@@ -3,6 +3,12 @@ build/
 install/
 log/
 
+# Python Virtual Environment Directory
+.venv/
+
+# Python Build Directory
+__pycache__/
+
 # VSCode Config Files
 .vscode/
 
