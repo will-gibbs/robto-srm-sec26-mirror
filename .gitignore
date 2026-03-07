@@ -9,3 +9,6 @@ log/
 # Vim Files
 *.*~
 *.swp
+
+# Python Virtual Env Dir
+.venv/
