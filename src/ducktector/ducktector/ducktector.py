@@ -59,31 +59,22 @@ class Ducktector(Node):
             # Find the centroid of the detected yellow
             M = cv2.moments(mask)
 
-            height, width = mask.shape
-
             position_msg = String()
 
-            # TO DO: 
             if M["m00"] > 0:
-                cx = int(M["m10"] / M["m00"])
-                cy = int(M["m01"] / M["m00"])
+                cx = str(int(M["m10"] / M["m00"]))
+                cy = str(int(M["m01"] / M["m00"]))
 
+                # Find the edges of the duck's head
                 contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 largest_countour = max(contours, key=cv2.contourArea)
                 x, y, w, h = cv2.boundingRect(largest_countour)
 
                 # Estimate the distance from the camera in inches
-                distance = str(FOCAL_LENGTH / w)
+                distance = str(int(FOCAL_LENGTH / w))
       
-                # Determine which side the duck is on
-                if cx < width / 3:
-                    position = "LEFT: " + distance
-                elif cx < 2 * width / 3:
-                    position = "CENTER: " + distance
-                else:
-                    position = "RIGHT: " + distance
-
-                position_msg.data = position
+                # Add position data to the message
+                position_msg.data = cx + ", " + cy + ", " + ", " + distance
 
                 # Optional: draw centroid
                 # cv2.circle(cv_image, (cx, cy), 10, (0, 0, 255), -1)
@@ -95,9 +86,9 @@ class Ducktector(Node):
             self.publisher.publish(position_msg)
 
             # Optional visualization
-            cv2.imshow("Mask", mask)
-            cv2.imshow("Camera Feed", cv_image)
-            cv2.waitKey(1)
+            # cv2.imshow("Mask", mask)
+            # cv2.imshow("Camera Feed", cv_image)
+            # cv2.waitKey(1)
 
         except CvBridgeError as e:
             self.get_logger().error(f"CV Bridge error: {e}")
