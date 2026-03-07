@@ -17,4 +17,20 @@ ament_target_dependencies(nav_node
 target_link_libraries(nav_node ${PCL_LIBRARIES})
 
 install(TARGETS nav_node DESTINATION lib/${PROJECT_NAME})
+
+# Install launch files
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install params
+install(FILES nav2_params.yaml
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/dummy_odom.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

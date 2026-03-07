@@ -11,9 +11,11 @@ def generate_launch_description():
     # We use 0.1524m forward and 0.2108m up. 
     # Note: We assume the camera is facing straight forward (0 rad rotation).
     static_tf = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        arguments=['0.1524', '0', '0.2108', '0', '0', '0', 'base_link', 'oak_rgb_camera_boot_frame']
+    package='tf2_ros',
+    executable='static_transform_publisher',
+    # Arguments: x y z yaw pitch roll frame_id child_frame_id
+    # We rotate -1.57 on Yaw and 1.57 on Pitch to align Optical to Base Link
+    arguments=['0.1524', '0', '0.2108', '-1.57', '0', '-1.57', 'base_link', 'oak_rgb_camera_optical_frame']
     )
 
     # 2. OAK-D Camera Driver (DepthAI)
@@ -46,10 +48,17 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': 'false'}.items()
     )
 
+    dummy_odom = Node(
+        package='my_nav_pkg',
+        executable='dummy_odom.py',
+        name='dummy_odom'
+    )
+
     return LaunchDescription([
         static_tf,
         camera_launch,
         nav_node,
         slam_toolbox,
-        nav2_bringup
+        nav2_bringup,
+        dummy_odom
     ])

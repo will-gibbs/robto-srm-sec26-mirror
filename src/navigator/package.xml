@@ -17,6 +17,7 @@
   <depend>libpcl-all-dev</depend>
   <depend>depthai_ros_driver</depend>
   <depend>slam_toolbox</depend>
+  <depend>tf2_ros</depend>
 
   <export><build_type>ament_cmake</build_type></export>
 </package>

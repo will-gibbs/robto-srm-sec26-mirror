@@ -2,14 +2,11 @@
 #include <chrono>
 #include <limits>
 #include <cmath>
-
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-
-// PCL Headers for PointCloud processing
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -75,11 +72,18 @@ private:
         for (const auto& point : cloud->points) {
             if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)) continue;
 
-            // Simple floor/ceiling filter (assuming 'z' is height in your specific frame)
-            if (point.z < 0.05 || point.z > 0.5) continue; 
+            // In Optical Frames: 
+            // point.z is Depth (Forward)
+            // point.x is Horizontal (Left/Right)
+            // point.y is Vertical (Up/Down)
 
-            float range = std::sqrt(point.x * point.x + point.y * point.y);
-            float angle = std::atan2(point.y, point.x);
+            // 1. Filter Height: Use point.y (Vertical) 
+            // Since Y is 'Down', -0.1 to 0.1 usually captures the middle of the camera view
+            if (point.y < -0.1 || point.y > 0.1) continue; 
+
+            // 2. Calculate Range and Angle using X and Z
+            float range = std::sqrt(point.x * point.x + point.z * point.z);
+            float angle = std::atan2(point.x, point.z); // Note: x and z swap to make Z 'forward'
 
             if (angle >= angle_min && angle <= angle_max) {
                 int index = (angle - angle_min) / angle_inc;
