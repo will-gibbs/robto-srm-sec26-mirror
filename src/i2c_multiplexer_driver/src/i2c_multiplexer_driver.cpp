@@ -165,7 +165,6 @@ I2CMultiplexerDriver::I2CMultiplexerDriver() : Node("i2c_multiplexer")
    if (i2c_dev == nullptr)
    {
       RCLCPP_ERROR(get_logger(), "Failed to open I2C bus at %s. Is the hardware connected?", I2C_BUS);
-      // Node will still start but sensor reads will fail gracefully
    }
    else
    {
@@ -232,6 +231,8 @@ bool I2CMultiplexerDriver::select_channel(uint8_t channel)
       success = false;
    }
 
+   RCLCPP_INFO(get_logger(), "Select multiplexer channel 0x%02X.", channel);
+
    return success;
 }
 
@@ -259,6 +260,10 @@ bool I2CMultiplexerDriver::init_color_sensor()
    uint8_t cmd_pon[2]   = { (uint8_t)(TCS34725_COMMAND_BIT | TCS34725_ENABLE), TCS34725_ENABLE_PON };
    bool    success      = select_channel(COLOR_SENSOR_CHANNEL);
 
+   RCLCPP_INFO(get_logger(), "Enter Color");
+
+   RCLCPP_INFO(get_logger(), "Failed to select multiplexer channel 0x%d.", success);
+
    if (success)
    {
       // Power on: write PON bit to ENABLE register (TCS34725.pdf p15, Table 5)
@@ -285,6 +290,8 @@ bool I2CMultiplexerDriver::init_color_sensor()
       // Set gain: 0x00 = 1x gain (TCS34725.pdf p18, Table 11)
       success = (i2cd_write(i2c_dev, COLOR_SENSOR_ADDR, cmd_gain, 2) >= 0);
    }
+
+   RCLCPP_INFO(get_logger(), "Exit Color");
 
    reset_mux();
 
