@@ -225,6 +225,8 @@ bool I2CMultiplexerDriver::select_channel(uint8_t channel)
 {
    bool success = (i2c_dev != nullptr);
 
+   RCLCPP_INFO(get_logger(), "Is the i2c_dev found %d.", success);
+
    if (success && i2cd_write(i2c_dev, MUX_ADDR, &channel, 1) < 0)
    {
       RCLCPP_ERROR(get_logger(), "Failed to select multiplexer channel 0x%02X.", channel);
