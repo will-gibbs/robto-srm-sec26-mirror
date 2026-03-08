@@ -30,6 +30,9 @@
 from src.sec_core_classes import Controller
 from src.sec_interfaces.action import CompleteTask
 
+import rclpy
+from rclpy.action import GoalResponse, CancelResponse
+
 # Constants
 #? Temporary values until testing
 MAX_VERTICAL_VELOCITY = 100
@@ -42,8 +45,8 @@ TICK_RATE = 10
 ###############################################################################
 class UavController(Controller):
    # Constructor
-   def UavController(self):
-
+   def __init__(self):
+      #? don't forget the general Controller data members
       self.position_in_world = get_rover_position()
       self.position_in_rover = Position(0, 0, 0, 0)
       self.velocity = Velocity(0, 0, 0, 0)
@@ -53,9 +56,17 @@ class UavController(Controller):
    def get_rover_position():
       pass
 
-   # 
+   # Respond to receive an action goal request
    def handle_goal(self, goal_request):
-      pass
+      self.get_logger().info("Received a request to complete the UAV task.")
+      if goal_request.begin_task == goal_request.BEGIN_TASK:
+         self.get_logger().info("Request accepted. Executing the UAV task.")
+         return GoalResponse.ACCEPT
+      else:
+         self.get_logger().info("Request denied. Invalid request code.")
+         return GoalResponse.REJECT
+      
+   # 
    def handle_cance():
       pass
    def handle_accepted():
@@ -70,7 +81,7 @@ class UavController(Controller):
 ###############################################################################
 class Position:
    # Constructor
-   def Position(self, x, y, z, orientation):
+   def __init__(self, x, y, z, orientation):
       self.__x = x
       self.__y = y
       self.__z = z
@@ -103,7 +114,7 @@ class Position:
 ###############################################################################
 class Velocity:
    # Constructor
-   def Velocity(self, u, v, w, yaw):
+   def __init__(self, u, v, w, yaw):
       self.__u = u     # Forward velocity
       self.__v = v     # Lateral velocity
       self.__w = w     # Vertical velocity
