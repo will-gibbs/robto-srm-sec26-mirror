@@ -66,7 +66,7 @@ public:
         return rclcpp_action::CancelResponse::ACCEPT;
     };
 
-    // Determines whether or not the goal is acceptable
+    // Respond to accepting a goal
     virtual void handle_accepted(const shared_ptr<GoalHandleCompleteTask> goal_handle)
     {
         RCLCPP_INFO(get_logger(), "Accepted a goal.");

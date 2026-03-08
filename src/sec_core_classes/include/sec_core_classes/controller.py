@@ -85,7 +85,7 @@ class Controller(Node):
       self.get_logger().info("Received cancel goal request.")
       return CancelResponse.ACCEPT
    
-   # Determines whether the goal is acceptable
+   # Manage accepting a request
    def handle_accepted(self, goal_handle):
       self.get_logger().info("Accepted a goal.")
       thread = threading.Thread(
