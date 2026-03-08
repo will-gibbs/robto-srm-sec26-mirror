@@ -9,19 +9,26 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from rclpy.qos import qos_profile_sensor_data
 
-MIN_HUE           = 20  # Minimum hue of mask color range
-MAX_HUE           = 30  # Maximum hue of mask color range
-MIN_SATURATION    = 100 # Mininum saturation of mask color range
-MAX_SATURATION    = 255 # Maximum saturation of mask color range
-MIN_BRIGHTNESS    = 100 # Minimum brightness of mask color range
-MAX_BRIGHTNESS    = 255 # Maximum brightness of mask color range
-FOCAL_LENGTH      = 1075
-                        # Perceived focal length 
+MAX_DUCKS         = 6    # Maximum number of ducks in the arena
+MIN_AREA          = 0    # Minimum area of yellow that the algorithm considers important enough to process
+MIN_HUE           = 20   # Minimum hue of mask color range
+MAX_HUE           = 30   # Maximum hue of mask color range
+MIN_SATURATION    = 100  # Mininum saturation of mask color range
+MAX_SATURATION    = 255  # Maximum saturation of mask color range
+MIN_BRIGHTNESS    = 100  # Minimum brightness of mask color range
+MAX_BRIGHTNESS    = 255  # Maximum brightness of mask color range
+FOCAL_LENGTH      = 1075 # Perceived focal length. Bigger focal length = object is perceived as further away from the camera
 
 class Ducktector(Node):
 
     def __init__(self):
         super().__init__('ducktector')
+
+        self.latest_image = None
+
+        self.timer = self.create_timer(
+            0.1,  # 10 FPS
+            self.process_frame)
 
         self.bridge = CvBridge()
 
@@ -40,14 +47,21 @@ class Ducktector(Node):
 
         self.get_logger().info("ducktector node started.")
 
-    def image_callback(self, msg):
+    def process_frame(self):
+        if self.latest_image is None:
+            return
+
+        msg = self.latest_image
+        self.latest_image = None
+
         try:
             # Convert ROS Image message to OpenCV image
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            cv_image = cv2.GaussianBlur(cv_image, (5,5), 0)
 
             # Convert OpenCV to HSV image
             hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-    
+
             # Define the bounds of what is considered "yellow"
             # first # is hue, second # is saturation, third # is value (or brightness)
             lower_yellow = np.array([MIN_HUE, MIN_SATURATION, MIN_BRIGHTNESS])
@@ -55,30 +69,42 @@ class Ducktector(Node):
 
             # Create a mask to separate the yellow from the rest of the image
             mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
+            kernel = np.ones((5,5), np.uint8)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
             
             # Find the centroid of the detected yellow
             M = cv2.moments(mask)
-
             position_msg = String()
 
-            if M["m00"] > 0:
-                cx = str(int(M["m10"] / M["m00"]))
-                cy = str(int(M["m01"] / M["m00"]))
+            contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours = sorted(contours, key=cv2.contourArea, reverse=True)[:MAX_DUCKS]
 
-                # Find the edges of the duck's head
-                contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                largest_countour = max(contours, key=cv2.contourArea)
-                x, y, w, h = cv2.boundingRect(largest_countour)
+            duck_data = []
 
-                # Estimate the distance from the camera in inches
-                distance = str(int(FOCAL_LENGTH / w))
-      
-                # Add position data to the message
-                position_msg.data = cx + ", " + cy + ", " + ", " + distance
+            for contour in contours:
+                area = cv2.contourArea(contour)
 
-                # Optional: draw centroid
-                # cv2.circle(cv_image, (cx, cy), 10, (0, 0, 255), -1)
+                if area > MIN_AREA:
+                    M = cv2.moments(contour)
 
+                if M["m00"] != 0:
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
+
+                    x, y, w, h = cv2.boundingRect(contour)
+
+                    distance = int(FOCAL_LENGTH / w)
+
+                    duck_data.append(f"{cx},{cy},{distance}")
+
+                    # Draw centroid
+                    cv2.circle(cv_image, (cx, cy), 8, (0,0,255), -1)
+
+                    # Draw bounding box
+                    cv2.rectangle(cv_image,(x,y),(x+w,y+h),(0,255,0),2)
+
+            if duck_data:
+                position_msg.data = ";".join(duck_data)
             else:
                 position_msg.data = "NO DUCK"
 
@@ -87,12 +113,14 @@ class Ducktector(Node):
 
             # Optional visualization
             # cv2.imshow("Mask", mask)
-            # cv2.imshow("Camera Feed", cv_image)
-            # cv2.waitKey(1)
+            cv2.imshow("Camera Feed", cv_image)
+            cv2.waitKey(1)
 
         except CvBridgeError as e:
             self.get_logger().error(f"CV Bridge error: {e}")
 
+    def image_callback(self, msg):
+        self.latest_image = msg
 
 def main(args=None):
     rclpy.init(args=args)
