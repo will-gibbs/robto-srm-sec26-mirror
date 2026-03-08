@@ -106,7 +106,7 @@ class Controller(Node):
    def register_with_manager(self):
       request = RegisterController.Request()
       request.controller_action_name = self.controller_name
-      if not self.register_controller.wait_for_service(timeout_sec = RETRY_INTERVAL): #? extra assignment in chat's
+      if not self.register_controller.wait_for_service(timeout_sec=RETRY_INTERVAL):
          self.get_logger().warning(
             f"RegisterController service not available for {self.controller_name}"
          )
