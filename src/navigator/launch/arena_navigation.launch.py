@@ -41,9 +41,14 @@ def generate_launch_description():
     )
 
     # 6. Nav2 - Notice the CAPITAL 'False'
+    params_file = os.path.join(nav_pkg_dir, 'config', 'nav2_params.yaml')
+
     nav2 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(nav2_dir, 'launch', 'navigation_launch.py')),
-        launch_arguments={'use_sim_time': 'False'}.items()
+        launch_arguments={
+            'use_sim_time': 'false',
+            'params_file': params_file
+        }.items()
     )
 
     # 7. Dummy Odom

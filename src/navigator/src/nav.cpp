@@ -56,7 +56,7 @@ private:
         scan->header = msg->header;
         // IMPORTANT: frame_id must match your robot's camera frame (usually 'oak_rgb_camera_optical_frame')
         // but for SLAM we project it to a horizontal plane.
-        scan->header.frame_id = msg->header.frame_id; 
+        scan->header.frame_id = "base_link"; // Project the data into the robot's base frame
 
         // LaserScan config
         double angle_min = -0.78, angle_max = 0.78, angle_inc = 0.0087;

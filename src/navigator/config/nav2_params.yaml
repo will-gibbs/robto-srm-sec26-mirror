@@ -1,9 +1,9 @@
 obstacle_layer:
   plugin: "nav2_costmap_2d::ObstacleLayer"
-  enabled: True
+  enabled: true
   observation_sources: scan
   scan:
     topic: /scan  # This matches your C++ publisher
     data_type: "LaserScan"
-    marking: True
-    clearing: True
+    marking: true
+    clearing: true
