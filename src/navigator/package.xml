@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>my_nav_pkg</name>
+  <name>navigator</name>
   <version>1.0.0</version>
   <description>Navigation for OAK-D Arena</description>
   <maintainer email="user@todo.com">user</maintainer>
