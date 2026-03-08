@@ -95,7 +95,7 @@ public:
             [this](const auto & goal_handle) {handle_accepted(goal_handle);});
         
         update_task = create_client<UpdateTask>(name + "/update_task");
-        register_controller = create_client<RegisterController>("register_controller");
+        register_controller = create_client<RegisterController>(name + "/register_controller");
 
         timer = create_wall_timer(timer_tick_rate, [this]() {return timer_callback();});
 
