@@ -66,11 +66,17 @@ class UavController(Controller):
          self.get_logger().info("Request denied. Invalid request code.")
          return GoalResponse.REJECT
       
-   # 
-   def handle_cance():
-      pass
+   # Respond to a request to cancel a goal
+   def handle_cancel(self, goal_handle):
+      self.get_logger().info("Received cancel UAV task request.")
+      self.get_logger().info("UAV task goal canceled.")
+      return CancelResponse.ACCEPT
+
+   # Respond to accepting a request
    def handle_accepted():
       pass
+
+   #
    def execute():
       pass
 
