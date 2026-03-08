@@ -429,7 +429,7 @@ void I2CMultiplexerDriver::read_color_sensor()
 
       // Color score used to identify antenna LED color (red, blue, green, purple)
       // Higher R = red, higher G = green, higher B = blue/purple, high R+G = yellow (not used here)
-      score = (int32_t)r + (int32_t)(g / 2) - (int32_t)b;
+      score = (int32_t)red + (int32_t)(green / 2) - (int32_t)blue;
 
       auto message = std_msgs::msg::Int32();
       message.data = score;
