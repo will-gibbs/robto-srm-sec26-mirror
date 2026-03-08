@@ -32,6 +32,7 @@ from src.sec_interfaces.action import CompleteTask
 
 import rclpy
 from rclpy.action import GoalResponse, CancelResponse
+import threading
 
 # Constants
 #? Temporary values until testing
@@ -73,8 +74,13 @@ class UavController(Controller):
       return CancelResponse.ACCEPT
 
    # Respond to accepting a request
-   def handle_accepted():
-      pass
+   def handle_accepted(self, goal_handle):
+      thread = threading.Thread(
+         target=self.execute,
+         args=(goal_handle,),
+         daemon=True
+      )
+      thread.start()
 
    #
    def execute():
