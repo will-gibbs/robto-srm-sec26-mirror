@@ -24,9 +24,12 @@ class WheelDriver(Node):
       super().__init__("wheel_driver")
       self.vel_subscriber = self.create_subscription(
          Twist,"cmd_vel", self.twist_callback, 10)
-      self.forward = LED(27)
-      self.backward = LED(17)
-      self.pwm = PWMOutputDevice(14, frequency=50)
+      self.left_forward = LED(27)
+      self.left_backward = LED(17)
+      self.left_pwm = PWMOutputDevice(14, frequency=50)
+      self.right_forward = LED(1)
+      self.right_backward = LED(0)
+      self.right_pwm = PWMOutputDevice(15)
 
    def twist_callback(self, vel):
       dta = DrivetrainAction
@@ -35,16 +38,26 @@ class WheelDriver(Node):
       self.get_logger().info(f"Left motor: {dta.left_motor} | Right motor: {dta.right_motor}")
 
       if (dta.left_motor > 0):
-         self.forward.on()
-         self.backward.off()
+         self.left_forward.on()
+         self.left_backward.off()
       elif (dta.left_motor < 0):
-         self.forward.off()
-         self.backward.on()
+         self.left_forward.off()
+         self.left_backward.on()
       else:
-         self.forward.off()
-         self.backward.off()
-      
-      self.pwm.value = abs(dta.left_motor)
+         self.left_forward.off()
+         self.left_backward.off()
+      self.left_pwm.value = abs(dta.left_motor)
+
+      if (dta.right_motor > 0):
+         self.right_forward.on()
+         self.right_backward.off()
+      elif (dta.right_motor < 0):
+         self.right_forward.off()
+         self.right_backward.on()
+      else:
+         self.right_forward.off()
+         self.right_backward.off()
+      self.right_pwm.value = abs(dta.right_motor)
 
    def calc_drivetrain_action(self, linear, angular) -> DrivetrainAction:
       dta = DrivetrainAction()
