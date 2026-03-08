@@ -14,6 +14,7 @@ find_package(builtin_interfaces)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/StartSwitch.msg"
   "srv/RegisterController.srv"
   "srv/StartRound.srv"
   "srv/UpdateTask.srv"
