@@ -24,6 +24,17 @@
 # - v: Lateral velocity (y axis)                                              #
 # - w: Vertical velocity (z axis)                                             #
 # - yaw: Angular velocity of the orientation                                  #
+#                                                                             #
+# Primary navigation for the UAV consists of keeping a queue of waypoints.    #
+# The UAV will set its velocity to go toward the waypoint at the front of the #
+# queue. Once it reaches the waypoint, it removes it from the queue. If the   #
+# queue is empty, the UAV will hover.                                         #
+#                                                                             #
+# The UAV controller has a timer that sends navigation commands to the radio  #
+# transmitter. At each tick, the controller computes the UAV's current        #
+# position based on its past position and current velocity. Then, it uses the #
+# difference between the current position and the target waypoint to compute  #
+# a new velocity and send it to the transmitter.                              #
 ###############################################################################
 
 # Imports
@@ -39,7 +50,7 @@ import threading
 MAX_VERTICAL_VELOCITY = 100
 MAX_FORWARD_VELOCITY = 100
 MAX_LATERAL_VELOCITY = 100
-TICK_RATE = 10
+TICK_RATE = 0.03 # in seconds
 
 ###############################################################################
 # UAV Controller Class Definition                                             #
@@ -48,9 +59,10 @@ class UavController(Controller):
    # Constructor
    def __init__(self):
       #? don't forget the general Controller data members
-      self.position_in_world = get_rover_position()
+      self.position_in_world = self.get_rover_position()
       self.position_in_rover = Position(0, 0, 0, 0)
       self.velocity = Velocity(0, 0, 0, 0)
+      self.timer = self.create_timer(TICK_RATE, self.timer_callback)
       pass
 
    # Get the rover's positions in the world frame
@@ -82,8 +94,25 @@ class UavController(Controller):
       )
       thread.start()
 
-   #
+   # Execute the UAV task
    def execute():
+      # Launch the UAV
+      # Move the required distance away from the rover
+      # Move back to the roer
+      # Land the UAV back on the rover
+      # First step completed
+      # Options: Hover over the rover, or hover by the earth module
+      # Relay color data as needed
+      # Land the UAV (optional)
+      pass
+
+   # Every timer tick, calculate the necessary commands to send to the rover
+   def timer_callback():
+      pass
+
+   def launch():
+      pass
+   def goto(world_position):
       pass
 
 
