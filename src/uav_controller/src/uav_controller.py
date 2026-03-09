@@ -50,13 +50,16 @@ from dataclasses import dataclass
 
 # Constants
 #? Temporary values until testing
-MAX_VERTICAL_VELOCITY = 100
-MAX_FORWARD_VELOCITY = 100
-MAX_LATERAL_VELOCITY = 100
-VERTICAL_GAIN = 0.5          # Proportional gain on the z axis
-HORIZONTAL_GAIN = 0.5        # Proportional gain on the x and y axes
-ANGULAR_GAIN = 1.2           # Proportional gain for angular yaw velocity
-TICK_RATE = 0.03             # In seconds
+MAX_VERTICAL_SPEED = 100.0
+MAX_HORIZONTAL_SPEED = 100.0
+MAX_YAW_RATE = 1.0
+MAX_VERTICAL_ACCELERATION = 0.1
+MAX_HORIZONTAL_ACCELERATION = 0.1
+MAX_YAW_ACCELERATION = 0.1
+VERTICAL_GAIN = 0.5           # Proportional gain on the z axis
+HORIZONTAL_GAIN = 0.5         # Proportional gain on the x and y axes
+ANGULAR_GAIN = 1.2            # Proportional gain for angular yaw velocity
+TICK_RATE = 0.03              # In seconds
 
 ###############################################################################
 # UAV Controller                                                              #
@@ -120,6 +123,8 @@ class UavController(Controller):
       self.update_position()
       self.calculate_new_velocity()
 
+      self.velocity_in_body = self.world_to_body(self.velocity_in_world)
+
       # Send the commands to the radio transmitter
 
    # Launch the UAV
@@ -149,24 +154,65 @@ class UavController(Controller):
       self.position_in_world.yaw += dtheta
       self.position_in_world.yaw = (self.position_in_world.yaw + math.pi) % (2*math.pi) - math.pi
 
-   # Calculate a new velocity
+   # Calculate a new velocity based on the distance to the target position
    def calculate_new_velocity(self):
-      #? Needs to have velocity caps and add smooth acceleration
+      # If there is no waypoint, hover
+      if not self.waypoints:
+         self.velocity_in_world.u = 0.0
+         self.velocity_in_world.v = 0.0
+         self.velocity_in_world.w = 0.0
+         self.velocity_in_world.yaw_rate = 0.0
+         return
+
+      # Calculate a new yaw rate
       yaw_error = self.waypoints[0].yaw - self.position_in_world.yaw
+      yaw_error = math.atan2(math.sin(yaw_error), math.cos(yaw_error))
+
+      # Define the difference between the current and target position
       self.position_error = Position(
          x=self.waypoints[0].x - self.position_in_world.x,
          y=self.waypoints[0].y - self.position_in_world.y,
          z=self.waypoints[0].z - self.position_in_world.z,
-         yaw=math.atan2(math.sin(yaw_error), math.cos(yaw_error))
+         yaw=yaw_error
       )
-      self.velocity_in_world.u = HORIZONTAL_GAIN * self.position_error.x
-      self.velocity_in_world.v = HORIZONTAL_GAIN * self.position_error.y
-      self.velocity_in_world.w = VERTICAL_GAIN * self.position_error.z
-      self.velocity_in_world.yaw_rate = ANGULAR_GAIN * self.position_error.yaw
-      self.velocity_in_body = self.world_to_uav(self.velocity_in_world)
+
+      # Set velocity components to be proportions of error components
+      vx = HORIZONTAL_GAIN * self.position_error.x
+      vy = HORIZONTAL_GAIN * self.position_error.y
+      vz = VERTICAL_GAIN * self.position_error.z
+      yaw_rate = ANGULAR_GAIN * self.position_error.yaw
+
+      # Cap speeds
+      horizontal_speed = math.hypot(vx*vx + vy*vy)
+      if horizontal_speed > MAX_HORIZONTAL_SPEED:
+         scale = MAX_HORIZONTAL_SPEED / horizontal_speed
+         vx *= scale
+         vy *= scale
+      vz = clamp(vz, -MAX_VERTICAL_SPEED, MAX_VERTICAL_SPEED)
+      yaw_rate = clamp(yaw_rate, -MAX_YAW_RATE, MAX_YAW_RATE)
+
+      # Cap accelerations
+      max_xy_accel = MAX_HORIZONTAL_ACCELERATION * TICK_RATE
+      max_z_accel = MAX_VERTICAL_ACCELERATION * TICK_RATE
+      max_yaw_accel = MAX_YAW_ACCELERATION * TICK_RATE
+      vx, vy = limit_horizontal_acceleration(
+         self.velocity_in_world.u,
+         self.velocity_in_world.v,
+         vx,
+         vy,
+         max_xy_accel
+      )
+      vz = limit_acceleration(self.velocity_in_world.w, vz, max_z_accel)
+      yaw_rate = limit_acceleration(self.velocity_in_world.yaw_rate, yaw_rate, max_yaw_accel)
+
+      # Store the components of the new velocity
+      self.velocity_in_world.u = vx
+      self.velocity_in_world.v = vy
+      self.velocity_in_world.w = vz
+      self.velocity_in_world.yaw_rate = yaw_rate
 
    # Convert a world velocity to a UAV velocity
-   def world_to_uav():
+   def world_to_body():
       pass
 
 
@@ -192,3 +238,31 @@ class Velocity:
    v: float = 0.0        # Secondary horizontal velocity (y axis)
    w: float = 0.0        # Vertical velocity (z axis)
    yaw_rate: float = 0.0 # Angular velocity of the UAV's yaw
+
+
+
+###############################################################################
+# Functions                                                                   #
+###############################################################################
+# Clamp a value between two boundaries
+def clamp(value, low, high):
+   return max(low, min(high, value))
+
+# Move toward a target velocity with an acceleration cap
+def limit_acceleration(current_velocity, target_velocity, max_acceleration):
+   acceleration = target_velocity - current_velocity
+   acceleration = clamp(acceleration, -max_acceleration, max_acceleration)
+   return current_velocity + acceleration
+
+# Move toward a target two-dimensional velocity with a horizontal velocity cap
+def limit_horizontal_acceleration(current_vx, current_vy, target_vx, target_vy, max_acceleration):
+    ax = target_vx - current_vx
+    ay = target_vy - current_vy
+
+    acceleration = math.hypot(ax, ay)
+    if acceleration > max_acceleration:
+        scale = max_acceleration / acceleration
+        ax *= scale
+        ay *= scale
+
+    return current_vx + ax, current_vy + ay
