@@ -6,13 +6,40 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    # 1. Path setup
     nav_pkg_dir = get_package_share_directory('navigator')
     nav2_dir = get_package_share_directory('nav2_bringup')
     slam_dir = get_package_share_directory('slam_toolbox')
     depthai_dir = get_package_share_directory('depthai_ros_driver')
+    
+    use_sim_time = 'false'
+    params_file = os.path.join(nav_pkg_dir, 'config', 'nav2_params.yaml')
 
-    # 2. Static TF
+    # 1. Camera - depthai_ros_driver often uses PythonExpression for conditions
+    camera = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(depthai_dir, 'launch', 'pointcloud.launch.py')),
+        launch_arguments={'use_sim_time': use_sim_time}.items()
+    )
+
+   # 5. SLAM Toolbox
+    slam = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(slam_dir, 'launch', 'online_async_launch.py')),
+        # Use Python True/False without quotes
+        launch_arguments={'use_sim_time': 'False'}.items() 
+    )
+
+    # 6. Nav2 - Use 'False' (String) but with 'True' (String) for autostart
+    # In Jazzy, try passing these WITHOUT nested quotes first, but capitalized.
+    nav2 = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(nav2_dir, 'launch', 'navigation_launch.py')),
+        launch_arguments={
+            'use_sim_time': 'False',
+            'params_file': os.path.join(nav_pkg_dir, 'config', 'nav2_params.yaml'),
+            'autostart': 'True',
+            'use_composition': 'False'
+        }.items()
+    )
+
+    # Nodes
     static_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -22,47 +49,14 @@ def generate_launch_description():
                    '--child-frame-id', 'oak_rgb_camera_optical_frame']
     )
 
-    # 3. Camera (OAK-D)
-    camera = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(depthai_dir, 'launch', 'pointcloud.launch.py'))
-    )
-
-    # 4. Your Node (The Converter)
     nav_node = Node(
-        package='navigator',
-        executable='nav_node',
-        name='camera_navigator',
-        output='screen'
+        package='navigator', executable='nav_node', name='camera_navigator'
     )
 
-    # 5. SLAM Toolbox
-    slam = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(slam_dir, 'launch', 'online_async_launch.py'))
-    )
-
-    # 6. Nav2 - Notice the CAPITAL 'False'
-    params_file = os.path.join(nav_pkg_dir, 'config', 'nav2_params.yaml')
-
-    nav2 = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(nav2_dir, 'launch', 'navigation_launch.py')),
-        launch_arguments={
-            'use_sim_time': 'false',
-            'params_file': params_file
-        }.items()
-    )
-
-    # 7. Dummy Odom
     dummy_odom = Node(
-        package='navigator',
-        executable='dummy_odom.py',
-        name='dummy_odom'
+        package='navigator', executable='dummy_odom.py', name='dummy_odom'
     )
 
     return LaunchDescription([
-        static_tf,
-        camera,
-        nav_node,
-        slam,
-        nav2,
-        dummy_odom
+        static_tf, camera, nav_node, slam, nav2, dummy_odom
     ])
