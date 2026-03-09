@@ -29,15 +29,35 @@ def generate_launch_description():
 
     # 6. Nav2
     nav2 = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(nav2_dir, 'launch', 'navigation_launch.py')),
-        launch_arguments={
-            'use_sim_time': 'False',
-            'params_file': params_file,
-            'autostart': 'True',
-            'use_composition': 'False',
-            'use_collision_monitor': 'False', # Disable the troublemaker
-            'use_opennav_docking': 'False'    # Disable docking too
-        }.items()
+    PythonLaunchDescriptionSource(os.path.join(nav2_dir, 'launch', 'navigation_launch.py')),
+    launch_arguments={
+        'use_sim_time': 'False',
+        'params_file': params_file,
+        'autostart': 'True',
+        'use_composition': 'False',
+        'use_lifecycle_manager': 'False', # This must be False
+        'map_subscribe_transient_local': 'True'
+    }.items()
+)
+
+    # Manually create a CLEAN lifecycle manager
+    # This ensures collision_monitor is NEVER even attempted
+    clean_lifecycle_manager = Node(
+        package='nav2_lifecycle_manager',
+        executable='lifecycle_manager',
+        name='lifecycle_manager_navigation',
+        output='screen',
+        parameters=[{'use_sim_time': False},
+                    {'autostart': True},
+                    {'node_names': [
+                        'controller_server',
+                        'smoother_server',
+                        'planner_server',
+                        'behavior_server',
+                        'bt_navigator',
+                        'waypoint_follower',
+                        'velocity_smoother'
+                    ]}]
     )
 
     # Old: base_link -> oak_rgb_camera_optical_frame
@@ -57,5 +77,5 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        static_tf, camera, nav_node, slam, nav2, dummy_odom
+        static_tf, camera, nav_node, slam, nav2, dummy_odom, clean_lifecycle_manager
     ])

@@ -56,3 +56,9 @@ lifecycle_manager_navigation:
       'velocity_smoother'
     ]
     # We intentionally exclude 'collision_monitor' and 'opennav_docking'
+
+lifecycle_manager:
+  ros__parameters:
+    autostart: true
+    # We redefine the list here to EXCLUDE collision_monitor
+    node_names: ['controller_server', 'smoother_server', 'planner_server', 'behavior_server', 'bt_navigator', 'waypoint_follower', 'velocity_smoother']

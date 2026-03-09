@@ -31,8 +31,11 @@ public:
     }
 
     void goToPosition(double x, double y) {
-        if (!this->client_ptr_->wait_for_action_server(std::chrono::seconds(5))) {
-            RCLCPP_ERROR(this->get_logger(), "Nav2 Action server not available!");
+        RCLCPP_INFO(this->get_logger(), "Checking if Nav2 is ready...");
+        
+        // Increase timeout to 20s to allow SLAM and OAK-D to warm up
+        if (!this->client_ptr_->wait_for_action_server(std::chrono::seconds(20))) {
+            RCLCPP_ERROR(this->get_logger(), "Nav2 Action server still not ACTIVE. Check SLAM/TF!");
             return;
         }
 
