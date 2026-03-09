@@ -17,13 +17,13 @@
 #      north; for a vehicle frame, positive is right                          #
 # - z: Vertical position; positive is down, consistent with aviation          #
 #      convention; the UAV begins at altitude 0                               #
-# - orientation: Angle in radians in standard position for a Cartesian plane  #
+# - yaw: Angle in radians in standard position for a Cartesian plane          #
 #      (0 is the positive x axis, PI/2 is the positive y axis, etc.)          #
 # Velocity:                                                                   #
 # - u: Forward velocity (x axis)                                              #
 # - v: Lateral velocity (y axis)                                              #
 # - w: Vertical velocity (z axis)                                             #
-# - yaw: Angular velocity of the orientation                                  #
+# - yaw_rate: Angular velocity of the yaw                                     #
 #                                                                             #
 # Primary navigation for the UAV consists of keeping a queue of waypoints.    #
 # The UAV will set its velocity to go toward the waypoint at the front of the #
@@ -43,27 +43,34 @@ from src.sec_interfaces.action import CompleteTask
 
 import rclpy
 from rclpy.action import GoalResponse, CancelResponse
+
+import math
 import threading
+from dataclasses import dataclass
 
 # Constants
 #? Temporary values until testing
 MAX_VERTICAL_VELOCITY = 100
 MAX_FORWARD_VELOCITY = 100
 MAX_LATERAL_VELOCITY = 100
-TICK_RATE = 0.03 # in seconds
+VERTICAL_GAIN = 0.5          # Proportional gain on the z axis
+HORIZONTAL_GAIN = 0.5        # Proportional gain on the x and y axes
+ANGULAR_GAIN = 1.2           # Proportional gain for angular yaw velocity
+TICK_RATE = 0.03             # In seconds
 
 ###############################################################################
-# UAV Controller Class Definition                                             #
+# UAV Controller                                                              #
 ###############################################################################
 class UavController(Controller):
    # Constructor
    def __init__(self):
       #? don't forget the general Controller data members
+      self.uav_is_launched
       self.position_in_world = self.get_rover_position()
       self.position_in_rover = Position(0, 0, 0, 0)
-      self.velocity = Velocity(0, 0, 0, 0)
+      self.velocity_in_uav = Velocity(0, 0, 0, 0)
+      self.velocity_in_world = Velocity(0, 0, 0, 0)
       self.timer = self.create_timer(TICK_RATE, self.timer_callback)
-      pass
 
    # Get the rover's positions in the world frame
    def get_rover_position():
@@ -106,13 +113,42 @@ class UavController(Controller):
       # Land the UAV (optional)
       pass
 
-   # Every timer tick, calculate the necessary commands to send to the rover
-   def timer_callback():
-      pass
+   # Update the current position and send a new velocity command
+   def timer_callback(self):
+      #? probably need to check if the UAV is on
+      # Update the current position
+      self.position_in_world.x += self.velocity_in_world.u / TICK_RATE
+      self.position_in_world.y += self.velocity_in_world.v / TICK_RATE
+      self.position_in_world.z += self.velocity_in_world.w / TICK_RATE
+      self.position_in_world.yaw += self.velocity_in_world.yaw_rate / TICK_RATE
 
+      # Calculate a new velocity
+      self.position_error = Position(
+         x=self.waypoints[0].x - self.position_in_world.x,
+         y=self.waypoints[0].y - self.position_in_world.y,
+         z=self.waypoints[0].z - self.position_in_world.z,
+         yaw_error = self.waypoints[0].yaw - self.position_in_world.yaw
+         # Normalize the yaw error to prevent turning around the long way
+         yaw=math.atan2(math.sin(yaw_error), math.cos(yaw_error))
+      )
+      self.velocity_in_world.u = HORIZONTAL_GAIN * self.position_error.x
+      self.velocity_in_world.v = HORIZONTAL_GAIN * self.position_error.y
+      self.velocity_in_world.w = VERTICAL_GAIN * self.position_error.z
+      self.velocity_in_world.yaw_rate = ANGULAR_GAIN * self.position_error.yaw
+      self.velocity_in_uav = self.world_to_uav(self.velocity_in_world)
+
+      # Send the commands to the radio transmitter
+
+   # Launch the UAV
    def launch():
       pass
+
+   # Navigate to a specified position
    def goto(world_position):
+      pass
+
+   # Convert a world velocity to a UAV velocity
+   def world_to_uav():
       pass
 
 
@@ -120,63 +156,21 @@ class UavController(Controller):
 ###############################################################################
 # Position in a three-dimensional coordinate system                           #
 ###############################################################################
+@dataclass
 class Position:
-   # Constructor
-   def __init__(self, x, y, z, orientation):
-      self.__x = x
-      self.__y = y
-      self.__z = z
-      self.__orientation = orientation
-
-   # Get the data members
-   def get_x(self):
-      return self.__x
-   def get_y(self):
-      return self.__y
-   def get_z(self):
-      return self.__z
-   def get_orientation(self):
-      return self.__orientation
-   
-   # Set the data members
-   def set_x(self, x):
-      self.__x = x
-   def set_y(self, y):
-      self.__y = y
-   def set_z(self, z):
-      self.__z = z
-   def set_orientation(self, orientation):
-      self.__orientation = orientation
+   x: float = 0.0
+   y: float = 0.0
+   z: float = 0.0
+   yaw: float = 0.0
    
 
 
 ###############################################################################
 # Velocity of the UAV                                                         #
 ###############################################################################
+@dataclass
 class Velocity:
-   # Constructor
-   def __init__(self, u, v, w, yaw):
-      self.__u = u     # Forward velocity
-      self.__v = v     # Lateral velocity
-      self.__w = w     # Vertical velocity
-      self.__yaw = yaw # Yaw, or spin velocity
-
-   # Get the data members
-   def get_u(self):
-      return self.__u
-   def get_v(self):
-      return self.__v
-   def get_w(self):
-      return self.__w
-   def get_yaw(self):
-      return self.__yaw
-   
-   # Set the data members
-   def set_u(self, u):
-      self.__u = u
-   def set_v(self, v):
-      self.__v = v
-   def set_w(self, w):
-      self.__w = w
-   def set_yaw(self, yaw):
-      self.__yaw = yaw
+   u: float = 0.0        # Primary horizontal velocity (x axis)
+   v: float = 0.0        # Secondary horizontal velocity (y axis)
+   w: float = 0.0        # Vertical velocity (z axis)
+   yaw_rate: float = 0.0 # Angular velocity of the UAV's yaw
