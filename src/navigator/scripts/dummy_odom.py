@@ -21,7 +21,7 @@ class DummyOdom(Node):
         self.vth = 0.0
         
         self.last_time = self.get_clock().now()
-        self.timer = self.create_timer(0.1, self.update) # 10Hz update
+        self.timer = self.create_timer(0.05, self.update) # 20Hz update
 
     def cmd_callback(self, msg):
         self.vx = msg.linear.x

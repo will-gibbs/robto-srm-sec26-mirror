@@ -20,33 +20,32 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': use_sim_time}.items()
     )
 
-   # 5. SLAM Toolbox
+    # 5. SLAM Toolbox
     slam = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(slam_dir, 'launch', 'online_async_launch.py')),
         # Use Python True/False without quotes
         launch_arguments={'use_sim_time': 'False'}.items() 
     )
 
-    # 6. Nav2 - Use 'False' (String) but with 'True' (String) for autostart
-    # In Jazzy, try passing these WITHOUT nested quotes first, but capitalized.
+    # 6. Nav2
     nav2 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(nav2_dir, 'launch', 'navigation_launch.py')),
         launch_arguments={
             'use_sim_time': 'False',
-            'params_file': os.path.join(nav_pkg_dir, 'config', 'nav2_params.yaml'),
+            'params_file': params_file,
             'autostart': 'True',
-            'use_composition': 'False'
+            'use_composition': 'False',
+            'use_collision_monitor': 'False', # Disable the troublemaker
+            'use_opennav_docking': 'False'    # Disable docking too
         }.items()
     )
 
-    # Nodes
+    # Old: base_link -> oak_rgb_camera_optical_frame
+    # New: base_link -> oak-d-base-frame
     static_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['--x', '0.1524', '--y', '0', '--z', '0.2108', 
-                   '--yaw', '-1.57', '--pitch', '0', '--roll', '-1.57', 
-                   '--frame-id', 'base_link', 
-                   '--child-frame-id', 'oak_rgb_camera_optical_frame']
+        arguments=['0.1524', '0.0', '0.2108', '0', '0', '0', 'base_link', 'oak-d-base-frame']
     )
 
     nav_node = Node(
