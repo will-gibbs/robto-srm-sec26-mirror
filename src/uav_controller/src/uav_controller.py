@@ -17,7 +17,7 @@
 #      north; for a vehicle frame, positive is right                          #
 # - z: Vertical position; positive is down, consistent with aviation          #
 #      convention; the UAV begins at altitude 0                               #
-# - yaw: Angle in radians in standard position for a Cartesian plane          #
+# - yaw: Angle in radians in standard position for the world frame            #
 #      (0 is the positive x axis, PI/2 is the positive y axis, etc.)          #
 # Velocity:                                                                   #
 # - u: Forward velocity (x axis)                                              #
@@ -68,7 +68,7 @@ class UavController(Controller):
       self.uav_is_launched
       self.position_in_world = self.get_rover_position()
       self.position_in_rover = Position(0, 0, 0, 0)
-      self.velocity_in_uav = Velocity(0, 0, 0, 0)
+      self.velocity_in_body = Velocity(0, 0, 0, 0)
       self.velocity_in_world = Velocity(0, 0, 0, 0)
       self.timer = self.create_timer(TICK_RATE, self.timer_callback)
 
@@ -116,26 +116,9 @@ class UavController(Controller):
    # Update the current position and send a new velocity command
    def timer_callback(self):
       #? probably need to check if the UAV is on
-      # Update the current position
-      self.position_in_world.x += self.velocity_in_world.u / TICK_RATE
-      self.position_in_world.y += self.velocity_in_world.v / TICK_RATE
-      self.position_in_world.z += self.velocity_in_world.w / TICK_RATE
-      self.position_in_world.yaw += self.velocity_in_world.yaw_rate / TICK_RATE
 
-      # Calculate a new velocity
-      self.position_error = Position(
-         x=self.waypoints[0].x - self.position_in_world.x,
-         y=self.waypoints[0].y - self.position_in_world.y,
-         z=self.waypoints[0].z - self.position_in_world.z,
-         yaw_error = self.waypoints[0].yaw - self.position_in_world.yaw
-         # Normalize the yaw error to prevent turning around the long way
-         yaw=math.atan2(math.sin(yaw_error), math.cos(yaw_error))
-      )
-      self.velocity_in_world.u = HORIZONTAL_GAIN * self.position_error.x
-      self.velocity_in_world.v = HORIZONTAL_GAIN * self.position_error.y
-      self.velocity_in_world.w = VERTICAL_GAIN * self.position_error.z
-      self.velocity_in_world.yaw_rate = ANGULAR_GAIN * self.position_error.yaw
-      self.velocity_in_uav = self.world_to_uav(self.velocity_in_world)
+      self.update_position()
+      self.calculate_new_velocity()
 
       # Send the commands to the radio transmitter
 
@@ -146,6 +129,41 @@ class UavController(Controller):
    # Navigate to a specified position
    def goto(world_position):
       pass
+
+   # Update the current position of the UAV after a timer tick
+   def update_position(self):
+      dt = TICK_RATE
+      omega = self.velocity_in_world.yaw_rate
+      dtheta = omega * dt
+      vx = self.velocity_in_world.u
+      vy = self.velocity_in_world.v
+
+      if abs(omega) < 1e-6:
+         self.position_in_world.x += vx * dt
+         self.position_in_world.y += vy * dt
+      else:
+         self.position_in_world.x += (vx * math.sin(dtheta) + vy * (math.cos(dtheta) - 1)) / omega
+         self.position_in_world.y += (vx * (math.cos(dtheta) - 1) + vy * math.sin(dtheta)) / omega
+
+      self.position_in_world.z += self.velocity_in_world.w * dt
+      self.position_in_world.yaw += dtheta
+      self.position_in_world.yaw = (self.position_in_world.yaw + math.pi) % (2*math.pi) - math.pi
+
+   # Calculate a new velocity
+   def calculate_new_velocity(self):
+      #? Needs to have velocity caps and add smooth acceleration
+      yaw_error = self.waypoints[0].yaw - self.position_in_world.yaw
+      self.position_error = Position(
+         x=self.waypoints[0].x - self.position_in_world.x,
+         y=self.waypoints[0].y - self.position_in_world.y,
+         z=self.waypoints[0].z - self.position_in_world.z,
+         yaw=math.atan2(math.sin(yaw_error), math.cos(yaw_error))
+      )
+      self.velocity_in_world.u = HORIZONTAL_GAIN * self.position_error.x
+      self.velocity_in_world.v = HORIZONTAL_GAIN * self.position_error.y
+      self.velocity_in_world.w = VERTICAL_GAIN * self.position_error.z
+      self.velocity_in_world.yaw_rate = ANGULAR_GAIN * self.position_error.yaw
+      self.velocity_in_body = self.world_to_uav(self.velocity_in_world)
 
    # Convert a world velocity to a UAV velocity
    def world_to_uav():
