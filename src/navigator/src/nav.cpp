@@ -56,7 +56,7 @@ private:
         pcl::fromROSMsg(*msg, *cloud);
 
         auto scan = std::make_unique<sensor_msgs::msg::LaserScan>();
-        scan->header = msg->header;
+        scan->header.stamp = this->now(); // Use current node time instead of message time
         // IMPORTANT: frame_id must match your robot's camera frame (usually 'oak_rgb_camera_optical_frame')
         // but for SLAM we project it to a horizontal plane.
         scan->header.frame_id = "base_link"; // Project the data into the robot's base frame
@@ -107,9 +107,9 @@ int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<CameraNavigator>();
     
-    // Example: Navigate to arena center after 5s
+    // Example: Navigate to arena center after 10s
     rclcpp::TimerBase::SharedPtr timer = node->create_wall_timer(
-        std::chrono::seconds(5), [&]() { node->goToPosition(1.0, 0.0); timer->cancel(); });
+        std::chrono::seconds(10), [&]() { node->goToPosition(1.0, 0.0); timer->cancel(); });
 
     rclcpp::spin(node);
     rclcpp::shutdown();

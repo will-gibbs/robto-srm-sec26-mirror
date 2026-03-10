@@ -6,8 +6,8 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    nav_pkg_dir = get_package_share_directory('navigator')
     nav2_dir = get_package_share_directory('nav2_bringup')
+    nav_pkg_dir = get_package_share_directory('navigator')
     slam_dir = get_package_share_directory('slam_toolbox')
     depthai_dir = get_package_share_directory('depthai_ros_driver')
     
@@ -60,13 +60,20 @@ def generate_launch_description():
                     ]}]
     )
 
-    # Old: base_link -> oak_rgb_camera_optical_frame
-    # New: base_link -> oak-d-base-frame
     static_tf = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        arguments=['0.1524', '0.0', '0.2108', '0', '0', '0', 'base_link', 'oak-d-base-frame']
-    )
+    package='tf2_ros',
+    executable='static_transform_publisher',
+    arguments=[
+        '--x', '0.1524', 
+        '--y', '0.0', 
+        '--z', '0.2108', 
+        '--yaw', '0', 
+        '--pitch', '0', 
+        '--roll', '0', 
+        '--frame-id', 'base_link', 
+        '--child-frame-id', 'oak-d-base-frame'
+    ]
+)
 
     nav_node = Node(
         package='navigator', executable='nav_node', name='camera_navigator'
