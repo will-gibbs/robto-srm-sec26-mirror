@@ -13,21 +13,24 @@ def generate_launch_description():
     
     use_sim_time = 'false'
     params_file = os.path.join(nav_pkg_dir, 'config', 'nav2_params.yaml')
+    slam_params_file = os.path.join(nav_pkg_dir, 'config', 'slam_params.yaml')
 
-    # 1. Camera - depthai_ros_driver often uses PythonExpression for conditions
+    # Camera - depthai_ros_driver often uses PythonExpression for conditions
     camera = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(depthai_dir, 'launch', 'pointcloud.launch.py')),
         launch_arguments={'use_sim_time': use_sim_time}.items()
     )
 
-    # 5. SLAM Toolbox
+    # SLAM Toolbox (UPDATED)
     slam = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(slam_dir, 'launch', 'online_async_launch.py')),
-        # Use Python True/False without quotes
-        launch_arguments={'use_sim_time': 'False'}.items() 
+        launch_arguments={
+            'use_sim_time': 'False',
+            'slam_params_file': slam_params_file  # <--- Pass your custom config here
+        }.items() 
     )
 
-    # 6. Nav2
+    # Nav2
     nav2 = IncludeLaunchDescription(
     PythonLaunchDescriptionSource(os.path.join(nav2_dir, 'launch', 'navigation_launch.py')),
     launch_arguments={
@@ -63,16 +66,8 @@ def generate_launch_description():
     static_tf = Node(
     package='tf2_ros',
     executable='static_transform_publisher',
-    arguments=[
-        '--x', '0.1524', 
-        '--y', '0.0', 
-        '--z', '0.2108', 
-        '--yaw', '0', 
-        '--pitch', '0', 
-        '--roll', '0', 
-        '--frame-id', 'base_link', 
-        '--child-frame-id', 'oak-d-base-frame'
-    ]
+    # Ensure arguments are strings and match the expected order for Jazzy
+    arguments=['0.1524', '0.0', '0.2108', '0', '0', '0', 'base_link', 'oak-d-base-frame']
 )
 
     nav_node = Node(

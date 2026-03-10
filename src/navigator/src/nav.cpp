@@ -56,10 +56,10 @@ private:
         pcl::fromROSMsg(*msg, *cloud);
 
         auto scan = std::make_unique<sensor_msgs::msg::LaserScan>();
-        scan->header.stamp = this->now(); // Use current node time instead of message time
+        scan->header.stamp = this->get_clock()->now(); // Use current node time instead of message time
         // IMPORTANT: frame_id must match your robot's camera frame (usually 'oak_rgb_camera_optical_frame')
         // but for SLAM we project it to a horizontal plane.
-        scan->header.frame_id = "base_link"; // Project the data into the robot's base frame
+        scan->header.frame_id = "oak-d-base-frame"; // Match your static_tf child-frame-id
 
         // LaserScan config
         double angle_min = -0.78, angle_max = 0.78, angle_inc = 0.0087;
