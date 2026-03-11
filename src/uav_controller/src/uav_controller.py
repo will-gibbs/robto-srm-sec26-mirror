@@ -20,10 +20,10 @@
 # - yaw: Angle in radians in standard position for the world frame            #
 #      (0 is the positive x axis, PI/2 is the positive y axis, etc.)          #
 # Velocity:                                                                   #
-# - u: Forward velocity (x axis)                                              #
-# - v: Lateral velocity (y axis)                                              #
-# - w: Vertical velocity (z axis)                                             #
-# - yaw_rate: Angular velocity of the yaw                                     #
+# - u: Velocity along the x axis                                              #
+# - v: Velocity along the y axis                                              #
+# - w: Velocity along the z axis, vertical velocity                           #
+# - yaw_rate: Rotational velocity around the z axis                           #
 #                                                                             #
 # Primary navigation for the UAV consists of keeping a queue of waypoints.    #
 # The UAV will set its velocity to go toward the waypoint at the front of the #
@@ -39,7 +39,6 @@
 
 # Imports
 from src.sec_core_classes import Controller
-from src.sec_interfaces.action import CompleteTask
 
 import rclpy
 from rclpy.action import GoalResponse, CancelResponse
@@ -47,19 +46,28 @@ from rclpy.action import GoalResponse, CancelResponse
 import math
 import threading
 from dataclasses import dataclass
+from enum import Enum
 
 # Constants
 #? Temporary values until testing
 MAX_VERTICAL_SPEED = 100.0
 MAX_HORIZONTAL_SPEED = 100.0
 MAX_YAW_RATE = 1.0
+
 MAX_VERTICAL_ACCELERATION = 0.1
 MAX_HORIZONTAL_ACCELERATION = 0.1
 MAX_YAW_ACCELERATION = 0.1
+
 VERTICAL_GAIN = 0.5           # Proportional gain on the z axis
 HORIZONTAL_GAIN = 0.5         # Proportional gain on the x and y axes
 ANGULAR_GAIN = 1.2            # Proportional gain for angular yaw velocity
 TICK_RATE = 0.03              # In seconds
+
+CRITICAL_DISTANCE = 10.0      # Vertical and lateral distance the UAV must be from the rover to acquire points
+WAYPOINT_TOLERANCE = 0.01     # Minimum distance to waypoint to count as arrived
+YAW_TOLERANCE = 0.01          # Minimum yaw difference to count as correct
+DEFAULT_ALTITUDE = -5.0       # Default altitude at which the UAV will hover of the rover
+DEFAULT_SPIRAL_RADIUS = 20.0  # Default radius for the spiral performed to locate the rover
 
 ###############################################################################
 # UAV Controller                                                              #
@@ -74,6 +82,8 @@ class UavController(Controller):
       self.velocity_in_body = Velocity(0, 0, 0, 0)
       self.velocity_in_world = Velocity(0, 0, 0, 0)
       self.timer = self.create_timer(TICK_RATE, self.timer_callback)
+      self.state = NavigationState.GROUNDED
+      self.waypoints = []
 
    # Get the rover's positions in the world frame
    def get_rover_position():
@@ -105,10 +115,17 @@ class UavController(Controller):
       thread.start()
 
    # Execute the UAV task
-   def execute():
+   def execute(self):
       # Launch the UAV
-      # Move the required distance away from the rover
-      # Move back to the roer
+      self.launch()
+
+      # Move the UAV the critical distance from the rover to acquire points
+      critical_position = self.get_rover_position()
+      critical_position.z -= CRITICAL_DISTANCE
+      critical_position.x += CRITICAL_DISTANCE
+      self.goto(critical_position)
+
+      # Move back to the rover
       # Land the UAV back on the rover
       # First step completed
       # Options: Hover over the rover, or hover by the earth module
@@ -118,22 +135,51 @@ class UavController(Controller):
 
    # Update the current position and send a new velocity command
    def timer_callback(self):
-      #? probably need to check if the UAV is on
-
+      # Calculate the new position of the UAV
       self.update_position()
-      self.calculate_new_velocity()
 
+      if self.state == NavigationState.GROUNDED:
+         pass
+      elif self.state == NavigationState.TAKE_OFF:
+         #? take-off logic
+         pass
+      elif self.state == NavigationState.LAND:
+         #? landing logic
+         pass
+      elif self.state == NavigationState.IDLE:
+         self.velocity_in_world.u = 0.0
+         self.velocity_in_world.v = 0.0
+         self.velocity_in_world.w = 0.0
+         self.velocity_in_world.yaw_rate = 0.0
+      elif self.state == NavigationState.NAVIGATE:
+         if not self.waypoints[0]:
+            S
+      elif self.state == NavigationState.SEARCH:
+         pass
+
+      self.calculate_new_velocity()
       self.velocity_in_body = self.world_to_body(self.velocity_in_world)
 
       # Send the commands to the radio transmitter
 
+      # If the UAV has reached waypoint, remove it from the list
+      if (self.position_in_world.distance(self.waypoints[0]) <= WAYPOINT_TOLERANCE
+          and (self.waypoints[0].yaw - self.position_in_world.yaw) <= YAW_TOLERANCE):
+         self.waypoints.pop(0)
+
    # Launch the UAV
-   def launch():
+   def launch(self):
+      self.state = NavigationState.TAKE_OFF
       pass
 
    # Navigate to a specified position
-   def goto(world_position):
-      pass
+   def goto(self, world_position):
+      self.waypoints.append(world_position)
+
+   # Navigae the UAV to find the rover
+   def find_rover(self, spiral_radius, altitude=DEFAULT_ALTITUDE):
+      self.goto(self.get_rover_position)
+
 
    # Update the current position of the UAV after a timer tick
    def update_position(self):
@@ -152,21 +198,13 @@ class UavController(Controller):
 
       self.position_in_world.z += self.velocity_in_world.w * dt
       self.position_in_world.yaw += dtheta
-      self.position_in_world.yaw = (self.position_in_world.yaw + math.pi) % (2*math.pi) - math.pi
+      self.position_in_world.yaw = normalize(self.position_in_world.yaw)
 
    # Calculate a new velocity based on the distance to the target position
    def calculate_new_velocity(self):
-      # If there is no waypoint, hover
-      if not self.waypoints:
-         self.velocity_in_world.u = 0.0
-         self.velocity_in_world.v = 0.0
-         self.velocity_in_world.w = 0.0
-         self.velocity_in_world.yaw_rate = 0.0
-         return
-
       # Calculate a new yaw rate
       yaw_error = self.waypoints[0].yaw - self.position_in_world.yaw
-      yaw_error = math.atan2(math.sin(yaw_error), math.cos(yaw_error))
+      yaw_error = normalize(yaw_error)
 
       # Define the difference between the current and target position
       self.position_error = Position(
@@ -220,12 +258,27 @@ class UavController(Controller):
 ###############################################################################
 # Position in a three-dimensional coordinate system                           #
 ###############################################################################
-@dataclass
 class Position:
-   x: float = 0.0
-   y: float = 0.0
-   z: float = 0.0
-   yaw: float = 0.0
+   # Constructor
+   def __init__(self, x=0.0, y=0.0, z=0.0, yaw=0.0):
+      self.x: float = x
+      self.y: float = y
+      self.z: float = z
+      self.yaw: float = yaw
+
+   # Overload subtraction
+   def __sub__(self, other):
+      self.x -= other.x
+      self.y -= other.y
+      self.z -= other.z
+      self.yaw -= other.yaw
+
+   # Get the distance to another position
+   def distance(self, other):
+      dx = other.x - self.x
+      dy = other.y - self.y
+      dz = other.z - self.z
+      return math.sqrt(dx*dx + dy*dy + dz*dz)
    
 
 
@@ -238,6 +291,19 @@ class Velocity:
    v: float = 0.0        # Secondary horizontal velocity (y axis)
    w: float = 0.0        # Vertical velocity (z axis)
    yaw_rate: float = 0.0 # Angular velocity of the UAV's yaw
+
+
+
+###############################################################################
+# Current navigation state of the UAV                                         #
+###############################################################################
+class NavigationState(Enum):
+   GROUNDED = 0
+   IDLE = 1
+   NAVIGATE = 2
+   SEARCH = 3
+   TAKE_OFF = 4
+   LAND = 5
 
 
 
@@ -266,3 +332,7 @@ def limit_horizontal_acceleration(current_vx, current_vy, target_vx, target_vy, 
         ay *= scale
 
     return current_vx + ax, current_vy + ay
+
+# Normalize an angle
+def normalize(angle):
+   return (angle + math.pi) % (2 * math.pi) - math.pi
