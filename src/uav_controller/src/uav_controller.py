@@ -153,7 +153,7 @@ class UavController(Controller):
          self.velocity_in_world.yaw_rate = 0.0
       elif self.state == NavigationState.NAVIGATE:
          if not self.waypoints[0]:
-            S
+            pass
       elif self.state == NavigationState.SEARCH:
          pass
 
