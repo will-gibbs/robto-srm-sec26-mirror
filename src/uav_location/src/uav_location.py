@@ -40,6 +40,7 @@ class UAVLocation(Node):
          self.publish_location
       )
       self.get_logger().info("UAV Location publisher started")
+      
    def publish_location(self):
       msg = BoolMultiArray()
       # Arbitrary placeholder values
