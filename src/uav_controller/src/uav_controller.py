@@ -58,9 +58,10 @@ MAX_VERTICAL_ACCELERATION = 0.1
 MAX_HORIZONTAL_ACCELERATION = 0.1
 MAX_YAW_ACCELERATION = 0.1
 
-VERTICAL_GAIN = 0.5           # Proportional gain on the z axis
-HORIZONTAL_GAIN = 0.5         # Proportional gain on the x and y axes
-ANGULAR_GAIN = 1.2            # Proportional gain for angular yaw velocity
+VERTICAL_GAIN = 0.5           # Determines speed along the z axis based on the distance to the target
+HORIZONTAL_GAIN = 0.5         # Determines speed along the x and y axes based on the distance to the target
+ANGULAR_GAIN = 1.2            # Determines anglular speed based on the yaw difference from the target
+
 TICK_RATE = 0.03              # In seconds
 
 CRITICAL_DISTANCE = 10.0      # Vertical and lateral distance the UAV must be from the rover to acquire points

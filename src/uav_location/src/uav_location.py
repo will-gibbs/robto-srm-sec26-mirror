@@ -10,6 +10,9 @@
 # This program is a publisher node that detects the infrared signals sent     #
 # from the UAV for location. It publishes two boolean values, each            #
 # corresonding to on of the transmitters.                                     #
+#                                                                             #
+# Publishes:                                                                  #
+# - uav_location                                                              #
 ###############################################################################
 
 # Imports
