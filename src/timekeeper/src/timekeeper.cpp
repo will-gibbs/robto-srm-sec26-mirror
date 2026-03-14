@@ -106,23 +106,26 @@ public:
          }
       };
 
-      auto start_switch_callback = [this](sec_interfaces::msg::StartSwitch::UniquePtr) -> void
+      auto start_switch_callback = [this](sec_interfaces::msg::StartSwitch::UniquePtr message) -> void
       {
-         if (round_has_started == 0)
+         if (message.start_switch_pressed == 1)
          {
-            round_has_started = 1;
+            if (round_has_started == 0)
+            {
+               round_has_started = 1;
 
-            // Create the request to start the round
-            auto request = std::make_shared<sec_interfaces::srv::StartRound::Request>();
+               // Create the request to start the round
+               auto request = std::make_shared<sec_interfaces::srv::StartRound::Request>();
 
-            // Populate request field
-            request->start_round = request->START_ROUND;
+               // Populate request field
+               request->start_round = request->START_ROUND;
 
-            // Call the round start service
-            auto future = start_round->async_send_request(request);
+               // Call the round start service
+               auto future = start_round->async_send_request(request);
 
-            // Confirm the call was sent
-            RCLCPP_INFO(get_logger(), "start_round called.");
+               // Confirm the call was sent
+               RCLCPP_INFO(get_logger(), "start_round called.");
+            }
          }
       };
 
