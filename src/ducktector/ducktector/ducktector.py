@@ -10,7 +10,7 @@ import cv2
 from rclpy.qos import qos_profile_sensor_data
 from geometry_msgs.msg import Polygon, Point32
 
-MAX_DUCKS         = 6    # Maximum number of ducks in the arena
+MAX_DUCKS         = 1    # Maximum number of ducks in the arena
 MIN_AREA          = 0    # Minimum area of yellow that the algorithm considers important enough to process
 MIN_HUE           = 20   # Minimum hue of mask color range
 MAX_HUE           = 30   # Maximum hue of mask color range
