@@ -8,7 +8,7 @@ from sec_interfaces.msg import StartSwitch
 class StartSwitchDriver(Node):
    def __init__(self):
       super().__init__("start_switch")
-      self.start_switch = DigitalInputDevice(10)
+      self.start_switch = DigitalInputDevice(16)
       self.start_switch_publisher = self.create_publisher(StartSwitch, "start_switch", 10)
       self.timer = self.create_timer(0.1, self.timer_callback)
 

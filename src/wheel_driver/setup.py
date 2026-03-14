@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-           'wheel_driver = wheel_driver.wheel_driver:main'
+           'wheel_driver = wheel_driver.wheel_driver:main',
+           'qualify_node = wheel_driver.qualify:main'
         ],
     },
 )
