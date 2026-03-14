@@ -28,6 +28,7 @@ setup(
            'qualify_node = wheel_driver.qualify:main',
            'main_sequence = wheel_driver.main_sequence:main',
            'demo = wheel_driver.demo:main',
+           'duck_demo = wheel_driver.duck_demo:main',
         ],
     },
 )
