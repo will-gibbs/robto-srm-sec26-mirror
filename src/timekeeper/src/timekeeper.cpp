@@ -6,6 +6,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "builtin_interfaces/msg/duration.hpp"
 #include "sec_interfaces/srv/start_round.hpp"
+#include "sec_interfaces/msg/start_switch.hpp"
 
 // Namespaces
 using namespace std;
@@ -24,9 +25,15 @@ class Timekeeper : public Node
    // Round time publisher
    Publisher<builtin_interfaces::msg::Duration>::SharedPtr publisher;
 
+   // Start switch subscriber
+   Subscription<sec_interfaces::msg::StartSwitch>::SharedPtr start_switch_subscriber;
+
    // Time remaining in the round in seconds and nanoseconds
    int32_t                                                 round_time_sec;
    uint32_t                                                round_time_nanosec;
+
+   // Flag to indicate if the round has started
+   bool round_has_started = 0;
 public:
    // Constructor, create a timekeeper
    Timekeeper() : Node("timekeeper"), round_time_sec(180), round_time_nanosec(0)
@@ -47,16 +54,16 @@ public:
       }
 
       // Create the request to start the round
-      auto request = std::make_shared<sec_interfaces::srv::StartRound::Request>();
+      // auto request = std::make_shared<sec_interfaces::srv::StartRound::Request>();
 
       // Populate request field
-       request->start_round = request->START_ROUND;
+      // request->start_round = request->START_ROUND;
 
       // Call the round start service
-      auto future = start_round->async_send_request(request);
+      // auto future = start_round->async_send_request(request);
 
       // Confirm the call was sent
-      RCLCPP_INFO(get_logger(), "start_round called.");
+      // RCLCPP_INFO(get_logger(), "start_round called.");
 
       // Create the round time publisher
       publisher = create_publisher<builtin_interfaces::msg::Duration>("round_time", 10);
@@ -98,6 +105,30 @@ public:
             exit(0);
          }
       };
+
+      auto start_switch_callback = [this](sec_interfaces::msg::StartSwitch::UniquePtr) -> void
+      {
+         if (round_has_started == 0)
+         {
+            round_has_started = 1;
+
+            // Create the request to start the round
+            auto request = std::make_shared<sec_interfaces::srv::StartRound::Request>();
+
+            // Populate request field
+            request->start_round = request->START_ROUND;
+
+            // Call the round start service
+            auto future = start_round->async_send_request(request);
+
+            // Confirm the call was sent
+            RCLCPP_INFO(get_logger(), "start_round called.");
+         }
+      };
+
+      // Create the start switch subscriber
+      start_switch_subscriber = create_subscription<sec_interfaces::msg::StartSwitch>
+      ("start_switch", 10, start_switch_callback)
 
       // Create the wall timer
       timer = create_wall_timer(10ms, timer_callback);
