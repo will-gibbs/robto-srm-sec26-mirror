@@ -8,6 +8,7 @@ from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from rclpy.qos import qos_profile_sensor_data
+from geometry_msgs.msg import Polygon, Point32
 
 MAX_DUCKS         = 6    # Maximum number of ducks in the arena
 MIN_AREA          = 0    # Minimum area of yellow that the algorithm considers important enough to process
@@ -40,7 +41,7 @@ class Ducktector(Node):
         )
 
         self.publisher = self.create_publisher(
-            String,
+            Polygon,
             'ducktection',
             10
         )
@@ -73,13 +74,11 @@ class Ducktector(Node):
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
             
             # Find the centroid of the detected yellow
-            M = cv2.moments(mask)
-            position_msg = String()
+            M            = cv2.moments(mask)
+            duck_points  = Polygon()
 
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             contours = sorted(contours, key=cv2.contourArea, reverse=True)[:MAX_DUCKS]
-
-            duck_data = []
 
             for contour in contours:
                 area = cv2.contourArea(contour)
@@ -93,9 +92,14 @@ class Ducktector(Node):
 
                     x, y, w, h = cv2.boundingRect(contour)
 
-                    distance = int(FOCAL_LENGTH / w)
+                    distance = int(FOCAL_LENGTH / w) if w > 0 else -1
 
-                    duck_data.append(f"{cx},{cy},{distance}")
+                    position_msg   = Point32()
+                    position_msg.x = float(cx)
+                    position_msg.y = float(cy)
+                    position_msg.z = float(distance)
+
+                    duck_points.points.append(position_msg)
 
                     # Draw centroid
                     cv2.circle(cv_image, (cx, cy), 8, (0,0,255), -1)
@@ -103,13 +107,15 @@ class Ducktector(Node):
                     # Draw bounding box
                     cv2.rectangle(cv_image,(x,y),(x+w,y+h),(0,255,0),2)
 
-            if duck_data:
-                position_msg.data = ";".join(duck_data)
-            else:
-                position_msg.data = "NO DUCK"
+            if not duck_points.points:
+                position_msg   = Point32()
+                position_msg.x = -1.0
+                position_msg.y = -1.0
+                position_msg.z = -1.0
+                duck_points.points.append(position_msg)
 
             # Publish duck position
-            self.publisher.publish(position_msg)
+            self.publisher.publish(duck_points)
 
             # Optional visualization
             # cv2.imshow("Mask", mask)
