@@ -22,6 +22,8 @@ public:
    StartRoundController() : Controller("start_round_controller", 100ms)
    {
       RCLCPP_INFO(get_logger(), "Creating a start round controller...");
+
+      vel_publisher = create_publisher<Twist>("cmd_vel", 10);
    };
 
    ~StartRoundController() {};
@@ -56,13 +58,23 @@ public:
       auto feedback = std::make_shared<CompleteTask::Feedback>();
       auto result = std::make_shared<CompleteTask::Result>();
 
-      for (int i = 10; i >= 1; i--)
+      auto message = Twist();
+      message.linear.x = 0.5;
+      message.angular.z = 0.0;
+      RCLCPP_INFO(get_logger(), "Driving forward...");
+      vel_publisher->publish(message);
+
+      for (int i = 5; i >= 1; i--)
       {
          if (goal_handle->is_canceling())
          {
             result->task_complete = 0;
             goal_handle->canceled(result);
             RCLCPP_INFO(get_logger(), "Goal cancelled.");
+            message.linear.x = 0.0;
+            message.angular.z = 0.0;
+            RCLCPP_INFO(get_logger(), "Stopping...");
+            vel_publisher->publish(message);
             return;
          }
 
@@ -79,8 +91,15 @@ public:
          result->task_complete = result->TASK_COMPLETE;
          RCLCPP_INFO(get_logger(), "Goal succeeded!");
       }
+
+      message.linear.x = 0.0;
+      message.angular.z = 0.0;
+      RCLCPP_INFO(get_logger(), "Done driving forward.");
+      vel_publisher->publish(message);
    };
 private:
+   Publisher<Twist>::SharedPtr vel_publisher;
+
    void timer_callback()
    {
       RCLCPP_INFO(get_logger(), "Timer tick");

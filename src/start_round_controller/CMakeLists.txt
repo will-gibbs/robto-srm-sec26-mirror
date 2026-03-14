@@ -14,9 +14,10 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sec_core_classes REQUIRED)
+find_package(sec_interfaces REQUIRED)
 
 add_executable(start_round_controller src/start_round_controller.cpp)
-ament_target_dependencies(start_round_controller rclcpp rclcpp_action geometry_msgs sec_core_classes)
+ament_target_dependencies(start_round_controller rclcpp rclcpp_action geometry_msgs sec_core_classes sec_interfaces)
 
 install(TARGETS
   start_round_controller

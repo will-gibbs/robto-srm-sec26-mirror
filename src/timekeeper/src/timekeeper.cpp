@@ -108,7 +108,7 @@ public:
 
       auto start_switch_callback = [this](sec_interfaces::msg::StartSwitch::UniquePtr message) -> void
       {
-         if (message.start_switch_pressed == 1)
+         if (message->start_switch_pressed == 1)
          {
             if (round_has_started == 0)
             {
@@ -131,7 +131,7 @@ public:
 
       // Create the start switch subscriber
       start_switch_subscriber = create_subscription<sec_interfaces::msg::StartSwitch>
-      ("start_switch", 10, start_switch_callback)
+      ("start_switch", 10, start_switch_callback);
 
       // Create the wall timer
       timer = create_wall_timer(10ms, timer_callback);
