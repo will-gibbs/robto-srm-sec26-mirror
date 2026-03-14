@@ -25,7 +25,9 @@ setup(
     entry_points={
         'console_scripts': [
            'wheel_driver = wheel_driver.wheel_driver:main',
-           'qualify_node = wheel_driver.qualify:main'
+           'qualify_node = wheel_driver.qualify:main',
+           'main_sequence = wheel_driver.main_sequence:main',
+           'demo = wheel_driver.demo:main',
         ],
     },
 )
