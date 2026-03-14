@@ -15,3 +15,6 @@ __pycache__/
 # Vim Files
 *.*~
 *.swp
+
+# Python Virtual Env Dir
+.venv/
