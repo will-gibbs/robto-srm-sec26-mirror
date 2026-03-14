@@ -71,38 +71,41 @@ public:
       // Callback function to be called on every tick of the wall timer
       auto timer_callback = [this]() -> void
       {
-         // Publish the time remaining until it hits zero
-         if (round_time_sec >= 0)
+         if (round_has_started == 1)
          {
-            // Create the message to be published
-            auto message = builtin_interfaces::msg::Duration();
+            // Publish the time remaining until it hits zero
+            if (round_time_sec >= 0)
+            {
+               // Create the message to be published
+               auto message = builtin_interfaces::msg::Duration();
 
-            // Write the time remaining to the message
-            message.sec = round_time_sec;
-            message.nanosec = round_time_nanosec;
+               // Write the time remaining to the message
+               message.sec = round_time_sec;
+               message.nanosec = round_time_nanosec;
 
-            // Log the time remaining
-            RCLCPP_INFO(get_logger(), "Time remaining: %d.%02.0f seconds.",
+               // Log the time remaining
+               RCLCPP_INFO(get_logger(), "Time remaining: %d.%02.0f seconds.",
                message.sec, (float)message.nanosec * 0.0000001f);
             
-            // Publish the message
-            publisher->publish(message);
+               // Publish the message
+               publisher->publish(message);
 
-            // Subtract time elapsed from the time remaining
-            if (round_time_nanosec == (uint32_t)0)
-            {
-               round_time_sec -= 1;
-               round_time_nanosec = 990000000;
+               // Subtract time elapsed from the time remaining
+               if (round_time_nanosec == (uint32_t)0)
+               {
+                 round_time_sec -= 1;
+                 round_time_nanosec = 990000000;
+               }
+               else
+               {
+                  round_time_nanosec -= 10000000;
+               }
             }
-            else
+            else 
             {
-               round_time_nanosec -= 10000000;
+               RCLCPP_INFO(get_logger(), "Times up!");
+               exit(0);
             }
-         }
-         else 
-         {
-            RCLCPP_INFO(get_logger(), "Times up!");
-            exit(0);
          }
       };
 
