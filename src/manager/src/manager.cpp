@@ -181,14 +181,13 @@ void Manager::start_round_callback(
       response->manager_status = response->OK;
       RCLCPP_INFO(get_logger(), "Starting Robto's mission. Hang in there, Astroducks!");
       // ? Start round logic
+      controllers[0]->request_complete_task();
    }
    else
    {
       response->manager_status = response->ERROR;
       RCLCPP_INFO(get_logger(), "Something went wrong with starting the round.");
    }
-
-   controllers[0]->request_complete_task();
 
    return;
 }
