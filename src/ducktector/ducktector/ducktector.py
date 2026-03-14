@@ -119,7 +119,7 @@ class Ducktector(Node):
 
             # Optional visualization
             # cv2.imshow("Mask", mask)
-            cv2.imshow("Camera Feed", cv_image)
+            # cv2.imshow("Camera Feed", cv_image)
             cv2.waitKey(1)
 
         except CvBridgeError as e:
