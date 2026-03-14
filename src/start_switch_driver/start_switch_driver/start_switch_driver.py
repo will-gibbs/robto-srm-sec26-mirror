@@ -5,8 +5,6 @@ import rclpy
 from rclpy.node import Node
 from sec_interfaces.msg import StartSwitch
 
-# from rpi_hardware_pwm import HardwarePWM
-
 class StartSwitchDriver(Node):
    def __init__(self):
       super().__init__("start_switch")
