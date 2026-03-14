@@ -112,6 +112,7 @@ public:
          {
             if (round_has_started == 0)
             {
+               sleep(1);
                round_has_started = 1;
 
                // Create the request to start the round
