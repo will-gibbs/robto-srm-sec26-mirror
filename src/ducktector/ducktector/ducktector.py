@@ -102,10 +102,10 @@ class Ducktector(Node):
                     duck_points.points.append(position_msg)
 
                     # Draw centroid
-                    cv2.circle(cv_image, (cx, cy), 8, (0,0,255), -1)
+                    #cv2.circle(cv_image, (cx, cy), 8, (0,0,255), -1)
 
                     # Draw bounding box
-                    cv2.rectangle(cv_image,(x,y),(x+w,y+h),(0,255,0),2)
+                    #cv2.rectangle(cv_image,(x,y),(x+w,y+h),(0,255,0),2)
 
             if not duck_points.points:
                 position_msg   = Point32()
@@ -120,7 +120,7 @@ class Ducktector(Node):
             # Optional visualization
             # cv2.imshow("Mask", mask)
             # cv2.imshow("Camera Feed", cv_image)
-            cv2.waitKey(1)
+            # cv2.waitKey(1)
 
         except CvBridgeError as e:
             self.get_logger().error(f"CV Bridge error: {e}")
