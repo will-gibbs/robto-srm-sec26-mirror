@@ -139,7 +139,7 @@ def main(args=None):
 
     node.destroy_node()
     rclpy.shutdown()
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
