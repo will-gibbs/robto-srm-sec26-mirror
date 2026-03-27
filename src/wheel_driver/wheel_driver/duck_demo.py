@@ -31,26 +31,32 @@ class DuckDemo(Node):
             #self.vel_publisher.publish(vel_msg)
             #self.duck_demo_robto()
             self.demo_started = True
+            sleep(1)
+            vel_msg = Twist()
+            vel_msg.angular.z = 0.5
+            self.vel_publisher.publish(vel_msg)
 
     def ducktection_callback(self, message):
         vel_msg = Twist() # cmd_vel Twist message
 
-        if (self.duck_detected == True and message.points[0].x == message.points[0].y == message.points[0].z == -1.0):
-            self.duck_detected = False
-            vel_msg.linear.x = 0.0
-            self.vel_publisher.publish(vel_msg)
-            sleep(1)
-            vel_msg.angular.z = 0.5
-            self.vel_publisher.publish(vel_msg)
-        elif (self.duck_detected == False and (message.points[0].x != -1.0 or message.points[0].y != -1.0 or message.points[0].z != -1.0)):
-            self.duck_detected = True
-            vel_msg.angular.z = 0.0
-            self.vel_publisher.publish(vel_msg)
-            sleep(1)
-            vel_msg.linear.x = -0.5
-            self.vel_publisher.publish(vel_msg)
-            if (message.points[0].z < 25.0):
-                sleep(3)
+        if (self.demo_started):
+            if (self.duck_detected == True and message.points[0].x == message.points[0].y == message.points[0].z == -1.0):
+                self.duck_detected = False
+                vel_msg.linear.x = 0.0
+                self.vel_publisher.publish(vel_msg)
+                sleep(1)
+                vel_msg.angular.z = 0.5
+                self.vel_publisher.publish(vel_msg)
+            elif (self.duck_detected == False and (message.points[0].x != -1.0 or message.points[0].y != -1.0 or message.points[0].z != -1.0)):
+                self.duck_detected = True
+                #sleep(0.5)
+                vel_msg.angular.z = 0.0
+                self.vel_publisher.publish(vel_msg)
+                sleep(1)
+                vel_msg.linear.x = -0.5
+                self.vel_publisher.publish(vel_msg)
+                if (message.points[0].z < 25.0):
+                    sleep(2)
     
 
     def duck_demo_robto(self):
